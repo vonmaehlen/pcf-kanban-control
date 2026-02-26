@@ -36,6 +36,10 @@ interface ICardInfoProps {
   showEmailAndPhoneAsLinks?: boolean,
   /** When true, the field value uses text-overflow: ellipsis (single line); otherwise multi-line clamp. */
   textEllipsis?: boolean,
+  /** When true, line breaks (newlines) in the text value are displayed. */
+  preserveLineBreaks?: boolean,
+  /** Maximum height in pixels for the field value; overflow is scrollable. */
+  maxHeightPx?: number,
 }
 
 const CARD_INFO_GAP_PX = 16;
@@ -46,7 +50,7 @@ function getColumnDataType(dataset: { columns?: { name: string; dataType?: strin
   return col?.dataType;
 }
 
-const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false }: ICardInfoProps) => {
+const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false, preserveLineBreaks = false, maxHeightPx }: ICardInfoProps) => {
   const { context, openFormWithLoading } = useContext(BoardContext);
   const htmlHostRef = useRef<HTMLDivElement>(null);
   const columnDataType = getColumnDataType(context.parameters?.dataset as { columns?: { name: string; dataType?: string }[] }, fieldName);
@@ -157,9 +161,17 @@ const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml =
                     </a>
                   )
               : (
-                  <Text className="card-text card-info-value" variant="medium">
-                    {handleInfoValue(info.value)}
-                  </Text>
+                  <div
+                    className={"card-info-value-wrap" + (preserveLineBreaks ? " card-info-value-wrap--line-breaks" : "")}
+                    style={maxHeightPx != null ? { maxHeight: maxHeightPx, overflowY: "auto" } : undefined}
+                  >
+                    <Text
+                      className={"card-text card-info-value" + (preserveLineBreaks ? " card-info-value--pre-wrap" : "")}
+                      variant="medium"
+                    >
+                      {handleInfoValue(info.value)}
+                    </Text>
+                  </div>
                 )
       }
     </div>

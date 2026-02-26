@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Text } from "@fluentui/react/lib/Text";
-import { OpenRegular } from "@fluentui/react-icons";
+import { OpenRegular, CalendarRegular } from "@fluentui/react-icons";
 import CardHeader from "./CardHeader";
 import CardBody from "./CardBody";
 import { CardInfo, CardItem } from "../../interfaces";
@@ -66,7 +66,18 @@ function hasValue(value: unknown): boolean {
 const CLICK_MOVE_THRESHOLD_PX = 5;
 
 const Card = ({ item, draggable = true }: IProps) => {
-  const { context, activeView, openFormWithLoading, openEntityInNewTab, showOpenInNewTabButton, reportConfigError, clearConfigError } = useContext(BoardContext);
+  const {
+    context,
+    activeView,
+    openFormWithLoading,
+    openEntityInNewTab,
+    showOpenInNewTabButton,
+    showCreateActivityButton,
+    createActivityEntityType,
+    openCreateActivityForm,
+    reportConfigError,
+    clearConfigError,
+  } = useContext(BoardContext);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
   const onCardClick = useCallback(() => {
@@ -275,6 +286,47 @@ const Card = ({ item, draggable = true }: IProps) => {
     }
   }, [context.parameters, reportConfigError, clearConfigError]);
 
+  const lineBreakFieldsOnCardSet = useMemo(() => {
+    const raw = (context.parameters as { lineBreakFieldsOnCard?: { raw?: string } }).lineBreakFieldsOnCard?.raw?.trim();
+    if (!raw) return new Set<string>();
+    try {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith("[")) {
+        const arr = JSON.parse(trimmed) as string[];
+        clearConfigError?.("lineBreakFieldsOnCard");
+        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
+      }
+      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
+    } catch (e) {
+      if (raw.trim().startsWith("[")) {
+        reportConfigError?.("lineBreakFieldsOnCard", e instanceof Error ? e.message : String(e));
+      }
+      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
+    }
+  }, [context.parameters, reportConfigError, clearConfigError]);
+
+  const fieldMaxHeightOnCardMap = useMemo((): Map<string, number> => {
+    const raw = (context.parameters as { fieldMaxHeightOnCard?: { raw?: string } }).fieldMaxHeightOnCard?.raw?.trim();
+    if (!raw) return new Map();
+    try {
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return new Map();
+      clearConfigError?.("fieldMaxHeightOnCard");
+      const map = new Map<string, number>();
+      for (const e of arr) {
+        if (e && typeof e === "object" && "logicalName" in e && "maxHeightPx" in e) {
+          const name = String(e.logicalName).trim();
+          const h = Number(e.maxHeightPx);
+          if (name && !isNaN(h) && h > 0) map.set(name, h);
+        }
+      }
+      return map;
+    } catch (e) {
+      reportConfigError?.("fieldMaxHeightOnCard", e instanceof Error ? e.message : String(e));
+      return new Map();
+    }
+  }, [context.parameters, reportConfigError, clearConfigError]);
+
   const fieldDisplayNamesOnCardMap = useMemo((): Map<string, string> => {
     const raw = (context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw?.trim();
     if (!raw) return new Map();
@@ -370,20 +422,44 @@ const Card = ({ item, draggable = true }: IProps) => {
         <Text className="card-title" nowrap>
           {item?.title?.value}
         </Text>
-        {showOpenInNewTabButton && (
-          <button
-            type="button"
-            className="card-open-new-tab-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              openEntityInNewTab(context.parameters.dataset.getTargetEntityType(), item.id.toString());
-            }}
-            aria-label="In neuem Tab öffnen"
-            title="In neuem Tab öffnen"
-          >
-            <OpenRegular />
-          </button>
+        {(showOpenInNewTabButton || showCreateActivityButton) && (
+          <span className="card-header-actions">
+            {showCreateActivityButton && (
+              <button
+                type="button"
+                className="card-create-activity-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  openCreateActivityForm(
+                    createActivityEntityType,
+                    context.parameters.dataset.getTargetEntityType(),
+                    item.id.toString(),
+                    typeof item?.title?.value === "string" ? item.title.value : undefined
+                  );
+                }}
+                aria-label="Aktivität anlegen"
+                title="Aktivität anlegen"
+              >
+                <CalendarRegular />
+              </button>
+            )}
+            {showOpenInNewTabButton && (
+              <button
+                type="button"
+                className="card-open-new-tab-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  openEntityInNewTab(context.parameters.dataset.getTargetEntityType(), item.id.toString());
+                }}
+                aria-label="In neuem Tab öffnen"
+                title="In neuem Tab öffnen"
+              >
+                <OpenRegular />
+              </button>
+            )}
+          </span>
         )}
       </CardHeader>
       <CardBody>
@@ -404,6 +480,8 @@ const Card = ({ item, draggable = true }: IProps) => {
                 lookupPersonaIconOnly={setMatchesField(lookupFieldsPersonaIconOnlyOnCardSet, fieldKey)}
                 showEmailAndPhoneAsLinks={showEmailAndPhoneAsLinks}
                 textEllipsis={setMatchesField(ellipsisFieldsOnCardSet, fieldKey)}
+                preserveLineBreaks={setMatchesField(lineBreakFieldsOnCardSet, fieldKey)}
+                maxHeightPx={mapGetByField(fieldMaxHeightOnCardMap, fieldKey)}
               />
             );
           })}

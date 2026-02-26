@@ -87,6 +87,18 @@ function getQuickFilterComparableValue(fieldValue: unknown): string {
   return String(fieldValue);
 }
 
+/** Sortier-Schlüssel pro Karte: leer = immer ans Ende (unabhängig von asc/desc). */
+function getCardSortKey(card: Record<string, unknown>, sortByField: string): { comparable: number | string; empty: boolean } {
+  if (sortByField === "estimatedvalue") {
+    const raw = card.estimatedvalueRaw;
+    const num = typeof raw === "number" && !Number.isNaN(raw) ? raw : null;
+    return { comparable: num ?? 0, empty: num === null };
+  }
+  const va = getQuickFilterComparableValue(card[sortByField]);
+  const empty = va == null || String(va).trim() === "";
+  return { comparable: va ?? "", empty };
+}
+
 interface DefaultSortConfig {
   field: string | null;
   direction: SortDirection;
@@ -255,9 +267,12 @@ const App = ({ context, notificationPosition }: IProps) => {
     (context as { userSettings?: { languageId?: number } }).userSettings?.languageId
   );
   const { getOptionSets, getBusinessProcessFlows } = useDataverse(context, reportConfigError, clearConfigError);
-  const { openForm, openEntityInNewTab } = useNavigation(context);
+  const { openForm, openEntityInNewTab, openCreateActivityForm } = useNavigation(context);
   const { dataset } = context.parameters;
   const showOpenInNewTabButton = (context.parameters as { showOpenInNewTabButton?: { raw?: boolean } }).showOpenInNewTabButton?.raw === true;
+  const showCreateActivityButton = (context.parameters as { showCreateActivityButton?: { raw?: boolean } }).showCreateActivityButton?.raw === true;
+  const createActivityEntityTypeRaw = (context.parameters as { createActivityEntityType?: { raw?: string } }).createActivityEntityType?.raw?.trim();
+  const createActivityEntityType = createActivityEntityTypeRaw !== undefined && createActivityEntityTypeRaw !== "" ? createActivityEntityTypeRaw : "task";
 
   // Key for refresh: derived from current records on each render so that
   // after dataset.refresh() the display updates (even when PCF returns the same reference).
@@ -491,6 +506,8 @@ const App = ({ context, notificationPosition }: IProps) => {
     (context.parameters as { fieldWidthsOnCard?: { raw?: string } }).fieldWidthsOnCard?.raw,
     (context.parameters as { showEmailAndPhoneAsLinks?: { raw?: boolean } }).showEmailAndPhoneAsLinks?.raw,
     (context.parameters as { ellipsisFieldsOnCard?: { raw?: string } }).ellipsisFieldsOnCard?.raw,
+    (context.parameters as { lineBreakFieldsOnCard?: { raw?: string } }).lineBreakFieldsOnCard?.raw,
+    (context.parameters as { fieldMaxHeightOnCard?: { raw?: string } }).fieldMaxHeightOnCard?.raw,
     (context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw,
     (context.parameters as { quickFilterFields?: { raw?: string } }).quickFilterFields?.raw,
     (context.parameters as { sortFields?: { raw?: string } }).sortFields?.raw,
@@ -679,43 +696,17 @@ const App = ({ context, notificationPosition }: IProps) => {
     });
 
     if (sortByField) {
-      const useEstimatedValueRaw = sortByField === "estimatedvalue";
       columns = columns.map((col) => {
         const sortedCards = [...(col.cards ?? [])].sort((a: any, b: any) => {
-          let cmp: number;
-          if (useEstimatedValueRaw) {
-            const aNum =
-              typeof a.estimatedvalueRaw === "number" && !Number.isNaN(a.estimatedvalueRaw)
-                ? a.estimatedvalueRaw
-                : null;
-            const bNum =
-              typeof b.estimatedvalueRaw === "number" && !Number.isNaN(b.estimatedvalueRaw)
-                ? b.estimatedvalueRaw
-                : null;
-            if (aNum !== null && bNum !== null) {
-              cmp = aNum - bNum;
-            } else if (aNum !== null) {
-              cmp = -1;
-            } else if (bNum !== null) {
-              cmp = 1;
-            } else {
-              cmp = 0;
-            }
-          } else {
-            const va = getQuickFilterComparableValue(a[sortByField]);
-            const vb = getQuickFilterComparableValue(b[sortByField]);
-            const aEmpty = va == null || String(va).trim() === "";
-            const bEmpty = vb == null || String(vb).trim() === "";
-            if (aEmpty && bEmpty) {
-              cmp = 0;
-            } else if (aEmpty) {
-              cmp = 1;
-            } else if (bEmpty) {
-              cmp = -1;
-            } else {
-              cmp = String(va).localeCompare(String(vb), undefined, { numeric: true });
-            }
-          }
+          const ka = getCardSortKey(a, sortByField);
+          const kb = getCardSortKey(b, sortByField);
+          if (ka.empty && kb.empty) return 0;
+          if (ka.empty) return 1;
+          if (kb.empty) return -1;
+          const cmp =
+            typeof ka.comparable === "number" && typeof kb.comparable === "number"
+              ? ka.comparable - kb.comparable
+              : String(ka.comparable).localeCompare(String(kb.comparable), undefined, { numeric: true });
           return sortDirection === "asc" ? cmp : -cmp;
         });
         return { ...col, cards: sortedCards };
@@ -889,6 +880,9 @@ const App = ({ context, notificationPosition }: IProps) => {
         openFormWithLoading,
         openEntityInNewTab,
         showOpenInNewTabButton,
+        showCreateActivityButton,
+        createActivityEntityType,
+        openCreateActivityForm,
         configErrors,
         reportConfigError,
         clearConfigError,

@@ -81,6 +81,24 @@
     />
 
     <property 
+      name="showCreateActivityButton" 
+      display-name-key="Show create activity button on card" 
+      description-key="When enabled, each card shows a button to create an activity (e.g. task) linked to the record. Use with Activity entity type to choose task, appointment, etc."
+      of-type="TwoOptions" 
+      usage="input" 
+      required="false"
+    />
+
+    <property 
+      name="createActivityEntityType" 
+      display-name-key="Create activity entity type" 
+      description-key="Logical name of the activity entity to create from the card (e.g. task, appointment, email). Default: task. Only used when Show create activity button on card is enabled."
+      of-type="SingleLine.Text" 
+      usage="input" 
+      required="false"
+    />
+
+    <property 
       name="hideEmptyColumns" 
       display-name-key="Hide empty columns" 
       description-key="When enabled, columns that contain no cards are not shown."
@@ -201,6 +219,24 @@
       name="ellipsisFieldsOnCard" 
       display-name-key="Ellipsis fields on card" 
       description-key="Field logical names for which the value is shown with text-overflow: ellipsis (single line, overflow hidden with ...). Other fields use multi-line clamp. JSON array (e.g. [&quot;description&quot;]) or comma-separated list."
+      of-type="SingleLine.TextArea" 
+      usage="input" 
+      required="false"
+    />
+
+    <property 
+      name="lineBreakFieldsOnCard" 
+      display-name-key="Line break fields on card" 
+      description-key="Field logical names for which line breaks (newlines) in the value are displayed. Other text fields show content in one line or with clamped lines. JSON array (e.g. [&quot;description&quot;]) or comma-separated list."
+      of-type="SingleLine.TextArea" 
+      usage="input" 
+      required="false"
+    />
+
+    <property 
+      name="fieldMaxHeightOnCard" 
+      display-name-key="Field max height on card" 
+      description-key="JSON array to set a maximum height (in pixels) for specific fields on the card (e.g. [{&quot;logicalName&quot;:&quot;description&quot;,&quot;maxHeightPx&quot;:80}]). Overflow is scrollable. Useful together with Line break fields on card for multi-line text."
       of-type="SingleLine.TextArea" 
       usage="input" 
       required="false"

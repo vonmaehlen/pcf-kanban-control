@@ -240,7 +240,15 @@
   flex: 1 1 auto;
 }
 
-.card-open-new-tab-btn {
+.card-header-actions {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.card-open-new-tab-btn,
+.card-create-activity-btn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -255,17 +263,20 @@
   cursor: pointer;
 }
 
-.card-open-new-tab-btn:hover {
+.card-open-new-tab-btn:hover,
+.card-create-activity-btn:hover {
   background: rgba(0, 0, 0, 0.06);
   color: rgb(33, 78, 128);
 }
 
-.card-open-new-tab-btn:focus {
+.card-open-new-tab-btn:focus,
+.card-create-activity-btn:focus {
   outline: 1px solid rgb(33, 78, 128);
   outline-offset: 1px;
 }
 
-.card-open-new-tab-btn svg {
+.card-open-new-tab-btn svg,
+.card-create-activity-btn svg {
   width: 16px;
   height: 16px;
 }
@@ -358,6 +369,22 @@
   display: block;
   min-width: 0;
   max-width: 100%;
+}
+
+/* Text fields with line breaks: preserve newlines, no line-clamp (configured via lineBreakFieldsOnCard). */
+.card-info-value-wrap {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.card-info-value--pre-wrap {
+  white-space: pre-wrap;
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow-wrap: break-word;
 }
 
 /* Lookup as simple link – same height as other card-info-value */
