@@ -58,9 +58,46 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
         await context.navigation.navigateTo(pageInput, popupOtions);
     }
 
+    /** Opens quick create form (or create form) for an activity entity with the given record as "regarding" (createFromEntity). */
+    const openCreateActivityForm = async (
+        activityEntityName: string,
+        parentEntityName: string,
+        parentId: string,
+        parentName?: string
+    ): Promise<void> => {
+        const nav = context.navigation as {
+            openForm?: (
+                options: {
+                    entityName: string;
+                    useQuickCreateForm?: boolean;
+                    createFromEntity?: { entityType: string; id: string; name?: string };
+                },
+                formParameters?: Record<string, string>
+            ) => Promise<unknown>;
+        };
+        if (typeof nav.openForm !== "function") {
+            return;
+        }
+        const options: {
+            entityName: string;
+            useQuickCreateForm: boolean;
+            createFromEntity: { entityType: string; id: string; name?: string };
+        } = {
+            entityName: activityEntityName,
+            useQuickCreateForm: true,
+            createFromEntity: {
+                entityType: parentEntityName,
+                id: parentId,
+                ...(parentName != null && parentName !== "" ? { name: parentName } : {}),
+            },
+        };
+        await nav.openForm(options, {});
+    };
+
     return {
         openForm,
         openEntityInNewTab,
-        createNewRecord
-    }
+        createNewRecord,
+        openCreateActivityForm,
+    };
 }

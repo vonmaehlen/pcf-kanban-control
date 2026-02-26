@@ -60,6 +60,12 @@ interface IBoardContext {
   openEntityInNewTab: (entityName: string, id: string) => void,
   /** When true, show the "open in new tab" button on each card (top right). */
   showOpenInNewTabButton: boolean,
+  /** When true, show the "create activity" button on each card (next to open in new tab). */
+  showCreateActivityButton: boolean,
+  /** Logical name of the activity entity to create (e.g. task, appointment). Default task. */
+  createActivityEntityType: string,
+  /** Opens quick create (or create) form for an activity linked to the given record. */
+  openCreateActivityForm: (activityEntityName: string, parentEntityName: string, parentId: string, parentName?: string) => Promise<void>,
   /** Reported JSON/configuration validation errors (property name + message) */
   configErrors: ConfigError[],
   /** Reports a configuration error (e.g. invalid JSON); stored only once per property/message */
