@@ -1,13 +1,14 @@
 import * as React from "react";
 import { Text } from "@fluentui/react/lib/Text";
-import { OpenRegular, CalendarRegular } from "@fluentui/react-icons";
+import { OpenRegular, CalendarRegular, FolderRegular } from "@fluentui/react-icons";
 import CardHeader from "./CardHeader";
 import CardBody from "./CardBody";
 import { CardInfo, CardItem } from "../../interfaces";
 import { CardDetails, CardDetailsList } from "./CardDetails";
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, useRef, useState } from "react";
 import { BoardContext } from "../../context/board-context";
 import { useContext } from "react";
+import { Spinner, SpinnerSize } from "@fluentui/react";
 
 export type HighlightType = "left" | "right" | "cornerTopRight" | "cornerBottomRight" | "cornerTopLeft" | "cornerBottomLeft";
 
@@ -75,10 +76,13 @@ const Card = ({ item, draggable = true }: IProps) => {
     showCreateActivityButton,
     createActivityEntityType,
     openCreateActivityForm,
+    showSharePointFolderButton,
+    openSharePointFolderInNewTab,
     reportConfigError,
     clearConfigError,
   } = useContext(BoardContext);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const [isSharePointLoading, setIsSharePointLoading] = useState(false);
 
   const onCardClick = useCallback(() => {
     openFormWithLoading(context.parameters.dataset.getTargetEntityType(), item.id.toString());
@@ -422,7 +426,7 @@ const Card = ({ item, draggable = true }: IProps) => {
         <Text className="card-title" nowrap>
           {item?.title?.value}
         </Text>
-        {(showOpenInNewTabButton || showCreateActivityButton) && (
+        {(showOpenInNewTabButton || showCreateActivityButton || showSharePointFolderButton) && (
           <span className="card-header-actions">
             {showCreateActivityButton && (
               <button
@@ -442,6 +446,33 @@ const Card = ({ item, draggable = true }: IProps) => {
                 title="Aktivität anlegen"
               >
                 <CalendarRegular />
+              </button>
+            )}
+            {showSharePointFolderButton && (
+              <button
+                type="button"
+                className="card-open-sharepoint-folder-btn"
+                disabled={isSharePointLoading}
+                aria-busy={isSharePointLoading}
+                aria-label="SharePoint-Ordner öffnen"
+                title="SharePoint-Ordner öffnen"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (isSharePointLoading) return;
+                  setIsSharePointLoading(true);
+                  openSharePointFolderInNewTab(
+                    context.parameters.dataset.getTargetEntityType(),
+                    item.id.toString(),
+                    typeof item?.title?.value === "string" ? item.title.value : undefined
+                  ).finally(() => setIsSharePointLoading(false));
+                }}
+              >
+                {isSharePointLoading ? (
+                  <Spinner size={SpinnerSize.small} />
+                ) : (
+                  <FolderRegular />
+                )}
               </button>
             )}
             {showOpenInNewTabButton && (

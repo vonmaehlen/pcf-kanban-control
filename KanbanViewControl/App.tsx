@@ -267,12 +267,13 @@ const App = ({ context, notificationPosition }: IProps) => {
     (context as { userSettings?: { languageId?: number } }).userSettings?.languageId
   );
   const { getOptionSets, getBusinessProcessFlows } = useDataverse(context, reportConfigError, clearConfigError);
-  const { openForm, openEntityInNewTab, openCreateActivityForm } = useNavigation(context);
+  const { openForm, openEntityInNewTab, openCreateActivityForm, openSharePointFolderInNewTab } = useNavigation(context);
   const { dataset } = context.parameters;
   const showOpenInNewTabButton = (context.parameters as { showOpenInNewTabButton?: { raw?: boolean } }).showOpenInNewTabButton?.raw === true;
   const showCreateActivityButton = (context.parameters as { showCreateActivityButton?: { raw?: boolean } }).showCreateActivityButton?.raw === true;
   const createActivityEntityTypeRaw = (context.parameters as { createActivityEntityType?: { raw?: string } }).createActivityEntityType?.raw?.trim();
   const createActivityEntityType = createActivityEntityTypeRaw !== undefined && createActivityEntityTypeRaw !== "" ? createActivityEntityTypeRaw : "task";
+  const showSharePointFolderButton = (context.parameters as { showSharePointFolderButton?: { raw?: boolean } }).showSharePointFolderButton?.raw === true;
 
   // Key for refresh: derived from current records on each render so that
   // after dataset.refresh() the display updates (even when PCF returns the same reference).
@@ -883,6 +884,8 @@ const App = ({ context, notificationPosition }: IProps) => {
         showCreateActivityButton,
         createActivityEntityType,
         openCreateActivityForm,
+        showSharePointFolderButton,
+        openSharePointFolderInNewTab,
         configErrors,
         reportConfigError,
         clearConfigError,

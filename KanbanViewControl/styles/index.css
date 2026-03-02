@@ -248,7 +248,8 @@
 }
 
 .card-open-new-tab-btn,
-.card-create-activity-btn {
+.card-create-activity-btn,
+.card-open-sharepoint-folder-btn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -264,19 +265,32 @@
 }
 
 .card-open-new-tab-btn:hover,
-.card-create-activity-btn:hover {
+.card-create-activity-btn:hover,
+.card-open-sharepoint-folder-btn:hover {
   background: rgba(0, 0, 0, 0.06);
   color: rgb(33, 78, 128);
 }
 
 .card-open-new-tab-btn:focus,
-.card-create-activity-btn:focus {
+.card-create-activity-btn:focus,
+.card-open-sharepoint-folder-btn:focus {
   outline: 1px solid rgb(33, 78, 128);
   outline-offset: 1px;
 }
 
 .card-open-new-tab-btn svg,
-.card-create-activity-btn svg {
+.card-create-activity-btn svg,
+.card-open-sharepoint-folder-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.card-open-sharepoint-folder-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.card-open-sharepoint-folder-btn .ms-Spinner {
   width: 16px;
   height: 16px;
 }

@@ -41,6 +41,7 @@ All configurable properties come from the Control Manifest. Invalid JSON in text
   - [Show open in new tab button on card](#show-open-in-new-tab-button-on-card)
   - [Show create activity button on card](#show-create-activity-button-on-card)
   - [Create activity entity type](#create-activity-entity-type)
+  - [Show SharePoint folder button on card](#show-sharepoint-folder-button-on-card)
   - [Hide empty columns](#hide-empty-columns)
   - [Expand board to full width](#expand-board-to-full-width)
   - [Minimum column width](#minimum-column-width)
@@ -329,6 +330,20 @@ The new activity is automatically linked to the card's record via the **Regardin
 Logical **name of the activity table** to create from the card when the create activity button is clicked, e.g. `task`, `appointment`, `email`.  
 If empty, the control uses `task` as the default.  
 Only used when **Show create activity button on card** is enabled.
+
+---
+
+### Show SharePoint folder button on card
+
+**Type:** Yes/No
+
+When **Yes**, each card shows a **SharePoint folder** button (folder icon) in the top-right corner, next to the other action buttons.  
+Clicking the button opens the **related SharePoint folder** for the current record in a new browser tab.  
+The control resolves the folder URL from the **SharePoint Document Location** linked to the record in Dataverse.  
+If **no document location exists yet** for the record, the control **creates one** (e.g. for opportunities: under the account's location and opportunity root, same behaviour as the Documents tab).  
+Default: **No**.
+
+If the opened folder is wrong or you want to compare with the app's behaviour, see [docs/SHAREPOINT_DEBUG.md](docs/SHAREPOINT_DEBUG.md) for using the browser Network tab.
 
 ---
 

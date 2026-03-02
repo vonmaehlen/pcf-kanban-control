@@ -66,6 +66,10 @@ interface IBoardContext {
   createActivityEntityType: string,
   /** Opens quick create (or create) form for an activity linked to the given record. */
   openCreateActivityForm: (activityEntityName: string, parentEntityName: string, parentId: string, parentName?: string) => Promise<void>,
+  /** When true, show the SharePoint folder button on each card (next to other action buttons). */
+  showSharePointFolderButton: boolean,
+  /** Opens the related SharePoint folder in a new browser tab (auto-resolved; if none exists, creates one like the Documents tab). Optional recordDisplayName used when creating the location. */
+  openSharePointFolderInNewTab: (entityName: string, id: string, recordDisplayName?: string | null) => Promise<void>,
   /** Reported JSON/configuration validation errors (property name + message) */
   configErrors: ConfigError[],
   /** Reports a configuration error (e.g. invalid JSON); stored only once per property/message */
