@@ -83,6 +83,7 @@ const Card = ({ item, draggable = true }: IProps) => {
   } = useContext(BoardContext);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const [isSharePointLoading, setIsSharePointLoading] = useState(false);
+  const [isCreatingActivity, setIsCreatingActivity] = useState(false);
 
   const onCardClick = useCallback(() => {
     openFormWithLoading(context.parameters.dataset.getTargetEntityType(), item.id.toString());
@@ -432,20 +433,28 @@ const Card = ({ item, draggable = true }: IProps) => {
               <button
                 type="button"
                 className="card-create-activity-btn"
+                disabled={isCreatingActivity}
+                aria-busy={isCreatingActivity}
+                aria-label="Aktivität anlegen"
+                title="Aktivität anlegen"
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
+                  if (isCreatingActivity) return;
+                  setIsCreatingActivity(true);
                   openCreateActivityForm(
                     createActivityEntityType,
                     context.parameters.dataset.getTargetEntityType(),
                     item.id.toString(),
                     typeof item?.title?.value === "string" ? item.title.value : undefined
-                  );
+                  ).finally(() => setIsCreatingActivity(false));
                 }}
-                aria-label="Aktivität anlegen"
-                title="Aktivität anlegen"
               >
-                <CalendarRegular />
+                {isCreatingActivity ? (
+                  <Spinner size={SpinnerSize.small} />
+                ) : (
+                  <CalendarRegular />
+                )}
               </button>
             )}
             {showSharePointFolderButton && (
