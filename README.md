@@ -52,6 +52,7 @@ All configurable properties come from the Control Manifest. Invalid JSON in text
 - [Card content & appearance](#card-content--appearance)
   - [Hide column field on card](#hide-column-field-on-card)
   - [Hidden fields on card](#hidden-fields-on-card)
+  - [Fields visible per stage (phase)](#fields-visible-per-stage-phase)
   - [HTML fields on card](#html-fields-on-card)
   - [Allowed HTML tags on card](#allowed-html-tags-on-card)
   - [Allowed HTML attributes on card](#allowed-html-attributes-on-card)
@@ -441,6 +442,31 @@ Or comma-separated: `estimatedvalue, createdon, ownerid`
 
 ---
 
+### Fields visible per stage (phase)
+
+**Type:** Text (JSON object)
+
+Restricts **which fields are shown on the card** depending on the current column (phase/stage). Only listed fields are affected; fields not in the config are visible in all columns.
+
+- **Business Process Flow:** Use the **stage display names** (e.g. `Qualify`, `Develop`, `Propose`).
+- **OptionSet / dropdown columns:** Use the **numeric option values (IDs)**, not the dropdown labels. For example, if your status has values 1 = Open, 2 = In Progress, 3 = Closed, use `"1"`, `"2"`, `"3"` in the array.
+
+Format: `{ "fieldLogicalName": ["columnId1", "columnId2", ...], ... }`. A field is only shown when the card’s column is in that field’s list.
+
+**Example (BPF + OptionSet):**
+
+```json
+{
+  "estimatedvalue": ["Qualify", "Develop"],
+  "description": ["Develop"],
+  "custom_notes": ["2", "3"]
+}
+```
+
+Here, `estimatedvalue` is visible only in BPF stages Qualify and Develop; `description` only in Develop; `custom_notes` only when the OptionSet column has value 2 or 3.
+
+---
+
 ### HTML fields on card
 
 **Type:** Text (JSON array or comma-separated)
@@ -756,7 +782,7 @@ You can still use standard **Edit Columns** and **Edit Filters** functionality.
 
 ### Configuration errors
 
-If a JSON property contains invalid JSON, the control shows a **Configuration errors** banner above the board with the property name and error message. Properties validated as JSON: **Filter out Business Process Flows**, **Business Process Flow Step Order**, **Field display names on card**, **Field highlights**, **Field widths on card**, **Filter presets**. For **Quick filter fields** and **Sort fields**, an error is only reported when the value starts with `[` but is not valid JSON; otherwise comma-separated parsing is used. Fix the value in the control configuration to clear the banner.
+If a JSON property contains invalid JSON, the control shows a **Configuration errors** banner above the board with the property name and error message. Properties validated as JSON: **Filter out Business Process Flows**, **Business Process Flow Step Order**, **Fields visible per stage (phase)**, **Field display names on card**, **Field highlights**, **Field widths on card**, **Filter presets**. For **Quick filter fields** and **Sort fields**, an error is only reported when the value starts with `[` but is not valid JSON; otherwise comma-separated parsing is used. Fix the value in the control configuration to clear the banner.
 
 ## 📦 Deployment
 

@@ -135,6 +135,15 @@
     />
 
     <property 
+      name="fieldsVisiblePerStage" 
+      display-name-key="Fields visible per stage (phase)" 
+      description-key="Fields that are only shown on the card in certain columns. JSON object: field logical name -&gt; array of column identifiers. For Business Process Flow: use stage names (e.g. Qualify, Develop). For OptionSet/dropdown columns: use the numeric option values (IDs), not the labels (e.g. [&quot;1&quot;,&quot;2&quot;,&quot;3&quot;]). Example: {&quot;estimatedvalue&quot;:[&quot;Qualify&quot;,&quot;Develop&quot;],&quot;description&quot;:[&quot;2&quot;]}. Fields not listed are visible in all columns."
+      of-type="SingleLine.TextArea" 
+      usage="input" 
+      required="false"
+    />
+
+    <property 
       name="htmlFieldsOnCard" 
       display-name-key="HTML fields on card" 
       description-key="Field logical names whose content is rendered as HTML (sanitized). JSON array (e.g. [&quot;field1&quot;,&quot;field2&quot;])."

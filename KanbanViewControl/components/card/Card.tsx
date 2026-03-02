@@ -144,6 +144,30 @@ const Card = ({ item, draggable = true }: IProps) => {
     }
   }, [context.parameters.hiddenFieldsOnCard, reportConfigError, clearConfigError]);
 
+  /** Map: field logical name -> array of stage names where the field is visible. Empty map = no restriction. */
+  const fieldsVisiblePerStageMap = useMemo((): Map<string, string[]> => {
+    const raw = (context.parameters as { fieldsVisiblePerStage?: { raw?: string } }).fieldsVisiblePerStage?.raw?.trim();
+    if (!raw) return new Map();
+    try {
+      const obj = JSON.parse(raw);
+      if (obj == null || typeof obj !== "object") return new Map();
+      clearConfigError?.("fieldsVisiblePerStage");
+      const map = new Map<string, string[]>();
+      for (const [key, value] of Object.entries(obj)) {
+        const fieldName = String(key).trim();
+        if (!fieldName) continue;
+        const stages = Array.isArray(value)
+          ? (value as unknown[]).map((s) => String(s).trim()).filter(Boolean)
+          : [];
+        if (stages.length > 0) map.set(fieldName, stages);
+      }
+      return map;
+    } catch (e) {
+      reportConfigError?.("fieldsVisiblePerStage", e instanceof Error ? e.message : String(e));
+      return new Map();
+    }
+  }, [context.parameters, reportConfigError, clearConfigError]);
+
   const htmlFieldsOnCardSet = useMemo(() => {
     const raw = (context.parameters as { htmlFieldsOnCard?: { raw?: string } }).htmlFieldsOnCard?.raw?.trim();
     if (!raw) return new Set<string>();
@@ -375,14 +399,23 @@ const Card = ({ item, draggable = true }: IProps) => {
 
   const columnFieldKey = activeView?.key;
 
+  const currentStageName = useMemo(() => {
+    const col = item.column;
+    return col != null ? String(col).trim() : "";
+  }, [item.column]);
+
   const cardDetails = useMemo(() => {
     return Object.entries(item)?.filter((i) => {
       if (i[0] === "title" || i[0] === "tag" || i[0] === "id" || i[0] === "column") return false;
       if (hideColumnFieldOnCard && columnFieldKey && i[0] === columnFieldKey) return false;
       if (setMatchesField(hiddenFieldsOnCardSet, i[0])) return false;
+      const allowedStages = fieldsVisiblePerStageMap.get(i[0]);
+      if (allowedStages !== undefined && allowedStages.length > 0) {
+        if (!currentStageName || !allowedStages.includes(currentStageName)) return false;
+      }
       return true;
     });
-  }, [item, hideColumnFieldOnCard, columnFieldKey, hiddenFieldsOnCardSet]);
+  }, [item, hideColumnFieldOnCard, columnFieldKey, hiddenFieldsOnCardSet, fieldsVisiblePerStageMap, currentStageName]);
 
   const isClickable = !draggable;
 
