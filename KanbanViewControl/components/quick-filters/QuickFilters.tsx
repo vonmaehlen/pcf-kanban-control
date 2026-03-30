@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useContext, useState, useEffect, useRef, useMemo } from "react";
+import { useContext, useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from "react";
 import { BoardContext } from "../../context/board-context";
 import KanbanDropdown from "../dropdown/Dropdown";
 import DateFilter from "./DateFilter";
@@ -17,6 +17,8 @@ const SORT_NONE_KEY = "__sort_none__";
 const FILTER_PRESET_NONE_KEY = "__filter_preset_none__";
 const SORT_KEY_SEP = ":";
 const SEARCH_DEBOUNCE_MS = 250;
+/** Gap in px between inline filter items (must match CSS gap on .kanban-quick-filters-inline) */
+const INLINE_GAP_PX = 16;
 
 function sortOptionKey(fieldKey: string, direction: SortDirection): string {
   return `${fieldKey}${SORT_KEY_SEP}${direction}`;
@@ -112,6 +114,13 @@ function renderFilterControl(
   );
 }
 
+/** Check if a quick filter value counts as "active" (non-null, non-empty). */
+function isFilterActive(value: string | string[] | null | undefined): boolean {
+  if (value == null) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== "";
+}
+
 const QuickFilters = () => {
   const {
     locale,
@@ -136,14 +145,63 @@ const QuickFilters = () => {
   const [popupFilterOpen, setPopupFilterOpen] = useState(false);
   const popupFilterButtonRef = useRef<HTMLDivElement>(null);
 
-  const inlineFilters = useMemo(
+  // --- Responsive overflow: measure which inline filters fit ---
+  const inlineContainerRef = useRef<HTMLDivElement>(null);
+  const filterItemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [visibleCount, setVisibleCount] = useState<number | null>(null);
+
+  // Split: inPopup filters ALWAYS stay in popup; only non-inPopup filters are candidates for inline
+  const inlineCandidates = useMemo(
     () => quickFilterFieldsConfig?.filter((cfg) => !cfg.inPopup) ?? [],
     [quickFilterFieldsConfig]
   );
-  const popupFilters = useMemo(
+  const alwaysPopupFilters = useMemo(
     () => quickFilterFieldsConfig?.filter((cfg) => cfg.inPopup) ?? [],
     [quickFilterFieldsConfig]
   );
+
+  const measureOverflow = useCallback(() => {
+    const container = inlineContainerRef.current;
+    if (!container || inlineCandidates.length === 0) {
+      setVisibleCount(inlineCandidates.length);
+      return;
+    }
+    const containerWidth = container.clientWidth;
+    let usedWidth = 0;
+    let count = 0;
+    for (let i = 0; i < inlineCandidates.length; i++) {
+      const el = filterItemRefs.current[i];
+      if (!el) continue;
+      const itemWidth = el.scrollWidth;
+      const widthWithGap = usedWidth + itemWidth + (count > 0 ? INLINE_GAP_PX : 0);
+      if (widthWithGap > containerWidth && count > 0) break;
+      usedWidth = widthWithGap;
+      count++;
+    }
+    setVisibleCount(count);
+  }, [inlineCandidates]);
+
+  useLayoutEffect(() => {
+    measureOverflow();
+  }, [measureOverflow, inlineCandidates, quickFilterOptions]);
+
+  useEffect(() => {
+    const container = inlineContainerRef.current;
+    if (!container) return;
+    const ro = new ResizeObserver(() => measureOverflow());
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [measureOverflow]);
+
+  const effectiveVisibleCount = visibleCount ?? inlineCandidates.length;
+  const overflowedInlineFilters = inlineCandidates.slice(effectiveVisibleCount);
+  // Popup contains: always-popup filters + any inline filters that overflowed
+  const popupFilters = [...alwaysPopupFilters, ...overflowedInlineFilters];
+
+  // Count active filters in popup for badge
+  const activePopupCount = popupFilters.filter(
+    (cfg) => isFilterActive(quickFilterValues[cfg.key])
+  ).length;
 
   useEffect(() => {
     setInputValue(searchKeyword);
@@ -158,31 +216,43 @@ const QuickFilters = () => {
 
   return (
     <div className="kanban-quick-filters" role="group" aria-label={strings.quickFiltersAriaLabel}>
-      <div className="kanban-quick-filters-inline">
-        {inlineFilters.map((cfg) =>
-          renderFilterControl(cfg, quickFilterOptions, quickFilterValues, setQuickFilterValue, strings)
-        )}
-        {popupFilters.length > 0 && (
-          <div className="kanban-quick-filters-popup-trigger" ref={popupFilterButtonRef}>
-            <IconButton
-              iconProps={{ iconName: "Filter" }}
-              title={strings.quickFiltersMoreFilters}
-              ariaLabel={strings.quickFiltersMoreFiltersOpen}
-              onClick={() => setPopupFilterOpen((v) => !v)}
-              className="kanban-quick-filters-more-btn"
-            />
-            {popupFilterOpen && popupFilterButtonRef.current && (
-              <Callout
-                target={popupFilterButtonRef.current}
-                onDismiss={() => setPopupFilterOpen(false)}
-                directionalHint={4}
-                gapSpace={4}
-                className="kanban-quick-filters-callout"
-                setInitialFocus
-              >
-                <div className="kanban-quick-filters-popup-content">
-                  <div className="kanban-quick-filters-popup-title">{strings.quickFiltersMoreFilters}</div>
-                  {popupFilters.map((cfg) => (
+      <div className="kanban-quick-filters-inline" ref={inlineContainerRef}>
+        {inlineCandidates.map((cfg, i) => (
+          <div
+            key={cfg.key}
+            ref={(el) => { filterItemRefs.current[i] = el; }}
+            className="kanban-quick-filters-inline-item"
+            style={i >= effectiveVisibleCount ? { visibility: "hidden", position: "absolute", pointerEvents: "none" } : undefined}
+          >
+            {renderFilterControl(cfg, quickFilterOptions, quickFilterValues, setQuickFilterValue, strings)}
+          </div>
+        ))}
+      </div>
+      <div className="kanban-quick-filters-right">
+        <div className="kanban-quick-filters-popup-trigger" ref={popupFilterButtonRef}>
+          <IconButton
+            iconProps={{ iconName: "Filter" }}
+            title={strings.quickFiltersMoreFilters}
+            ariaLabel={strings.quickFiltersMoreFiltersOpen}
+            onClick={() => setPopupFilterOpen((v) => !v)}
+            className={`kanban-quick-filters-more-btn${activePopupCount > 0 ? " kanban-quick-filters-more-btn--active" : ""}`}
+          />
+          {activePopupCount > 0 && (
+            <span className="kanban-quick-filters-badge">{activePopupCount}</span>
+          )}
+          {popupFilterOpen && popupFilterButtonRef.current && (
+            <Callout
+              target={popupFilterButtonRef.current}
+              onDismiss={() => setPopupFilterOpen(false)}
+              directionalHint={4}
+              gapSpace={4}
+              className="kanban-quick-filters-callout"
+              setInitialFocus
+            >
+              <div className="kanban-quick-filters-popup-content">
+                <div className="kanban-quick-filters-popup-title">{strings.quickFiltersMoreFilters}</div>
+                {popupFilters.length > 0 ? (
+                  popupFilters.map((cfg) => (
                     <div key={cfg.key} className="kanban-quick-filters-popup-row">
                       <span className="kanban-quick-filters-popup-label">{cfg.text}</span>
                       <div className="kanban-quick-filters-popup-dropdown">
@@ -196,14 +266,37 @@ const QuickFilters = () => {
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </Callout>
-            )}
+                  ))
+                ) : (
+                  <div className="kanban-quick-filters-popup-empty">{strings.quickFilterAll}</div>
+                )}
+              </div>
+            </Callout>
+          )}
+        </div>
+        {filterPresetsConfig.length > 0 && (
+          <div className="kanban-quick-filters-preset">
+            <KanbanDropdown
+              label={strings.filterPresetLabel}
+              placeholder={strings.filterPresetNone}
+              options={[
+                { key: FILTER_PRESET_NONE_KEY, text: strings.filterPresetNone },
+                ...filterPresetsConfig.map((p) => ({ key: p.id, text: p.label })),
+              ]}
+              selectedOption={
+                selectedFilterPresetId
+                  ? filterPresetsConfig.find((p) => p.id === selectedFilterPresetId)
+                    ? { key: selectedFilterPresetId, text: filterPresetsConfig.find((p) => p.id === selectedFilterPresetId)!.label }
+                    : { key: FILTER_PRESET_NONE_KEY, text: strings.filterPresetNone }
+                  : { key: FILTER_PRESET_NONE_KEY, text: strings.filterPresetNone }
+              }
+              onOptionSelected={(option) => {
+                const key = String(option.key);
+                applyFilterPreset(key === FILTER_PRESET_NONE_KEY ? null : key);
+              }}
+            />
           </div>
         )}
-      </div>
-      <div className="kanban-quick-filters-right">
         {sortFieldsConfig.length > 0 && (
           <div className="kanban-quick-filters-sort">
             <KanbanDropdown
@@ -238,29 +331,6 @@ const QuickFilters = () => {
                   setSortByField(field);
                   setSortDirection(dir === "asc" || dir === "desc" ? dir : "asc");
                 }
-              }}
-            />
-          </div>
-        )}
-        {filterPresetsConfig.length > 0 && (
-          <div className="kanban-quick-filters-preset">
-            <KanbanDropdown
-              label={strings.filterPresetLabel}
-              placeholder={strings.filterPresetNone}
-              options={[
-                { key: FILTER_PRESET_NONE_KEY, text: strings.filterPresetNone },
-                ...filterPresetsConfig.map((p) => ({ key: p.id, text: p.label })),
-              ]}
-              selectedOption={
-                selectedFilterPresetId
-                  ? filterPresetsConfig.find((p) => p.id === selectedFilterPresetId)
-                    ? { key: selectedFilterPresetId, text: filterPresetsConfig.find((p) => p.id === selectedFilterPresetId)!.label }
-                    : { key: FILTER_PRESET_NONE_KEY, text: strings.filterPresetNone }
-                  : { key: FILTER_PRESET_NONE_KEY, text: strings.filterPresetNone }
-              }
-              onOptionSelected={(option) => {
-                const key = String(option.key);
-                applyFilterPreset(key === FILTER_PRESET_NONE_KEY ? null : key);
               }}
             />
           </div>
