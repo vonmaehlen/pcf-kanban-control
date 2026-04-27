@@ -131,7 +131,7 @@ const Column = ({ column, widthPx }: { column: ColumnItem; widthPx?: number }) =
                   )}
                 </Draggable>
               ))}
-            {!hasCards && <NoResults />}
+            {!hasCards && !snapshot.isDraggingOver && <NoResults />}
             {provided.placeholder}
           </div>
         )}
