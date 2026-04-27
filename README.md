@@ -519,11 +519,21 @@ Or comma-separated.
 
 Custom **display names (labels)** for fields on the card. Format: `{"logicalName":"...","displayName":"..."}`. Fields not listed keep their dataset display name. Invalid JSON is reported.
 
-**Example:**
+`displayName` can be either a **plain string** (same label for all languages) or a **locale object** for internationalization (keys are locale codes like `"en"`, `"de"`, `"fr"`). The control resolves the label based on the user's app language. Falls back to the base language (e.g. `"en"` from `"en-US"`), then to `"en"`, then to the first available value.
+
+**Example (plain string — same for all locales):**
 
 ```json
 [{"logicalName":"estimatedvalue","displayName":"Value"},{"logicalName":"description","displayName":"Description"}]
 ```
+
+**Example (localized per language):**
+
+```json
+[{"logicalName":"estimatedvalue","displayName":{"en":"Value","de":"Wert","fr":"Valeur"}},{"logicalName":"description","displayName":{"en":"Notes","de":"Notizen"}}]
+```
+
+Both formats can be mixed in the same array.
 
 ---
 

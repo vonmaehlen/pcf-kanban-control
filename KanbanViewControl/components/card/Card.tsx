@@ -4,6 +4,7 @@ import { OpenRegular, CalendarRegular, FolderRegular } from "@fluentui/react-ico
 import CardHeader from "./CardHeader";
 import CardBody from "./CardBody";
 import { CardInfo, CardItem } from "../../interfaces";
+import { parseFieldDisplayNames } from "../../lib/utils";
 import { CardDetails, CardDetailsList } from "./CardDetails";
 import { useMemo, useCallback, useRef, useState } from "react";
 import { BoardContext } from "../../context/board-context";
@@ -69,6 +70,7 @@ const CLICK_MOVE_THRESHOLD_PX = 5;
 const Card = ({ item, draggable = true }: IProps) => {
   const {
     context,
+    locale,
     activeView,
     openFormWithLoading,
     openEntityInNewTab,
@@ -356,27 +358,15 @@ const Card = ({ item, draggable = true }: IProps) => {
     }
   }, [context.parameters, reportConfigError, clearConfigError]);
 
-  const fieldDisplayNamesOnCardMap = useMemo((): Map<string, string> => {
-    const raw = (context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw?.trim();
-    if (!raw) return new Map();
-    try {
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Map();
-      clearConfigError?.("fieldDisplayNamesOnCard");
-      const map = new Map<string, string>();
-      for (const e of arr) {
-        if (e && typeof e === "object" && "logicalName" in e && "displayName" in e) {
-          const name = String(e.logicalName).trim();
-          const displayName = String(e.displayName).trim();
-          if (name) map.set(name, displayName);
-        }
-      }
-      return map;
-    } catch (e) {
-      reportConfigError?.("fieldDisplayNamesOnCard", e instanceof Error ? e.message : String(e));
-      return new Map();
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
+  const fieldDisplayNamesOnCardMap = useMemo(
+    () => parseFieldDisplayNames(
+      (context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw,
+      locale,
+      reportConfigError ?? undefined,
+      clearConfigError ?? undefined,
+    ),
+    [context.parameters, locale, reportConfigError, clearConfigError]
+  );
 
   const highlights = useMemo(() => {
     const result: { left?: string; right?: string; cornerTopRight?: string; cornerBottomRight?: string; cornerTopLeft?: string; cornerBottomLeft?: string } = {};

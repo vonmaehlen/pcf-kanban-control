@@ -8,7 +8,7 @@ import Loading from "./components/container/loading";
 import { Toaster } from "react-hot-toast";
 import { useDataverse } from "./hooks/useDataverse";
 import { useNavigation } from "./hooks/useNavigation";
-import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, toComparableDate, toComparableNumber, isDateInFilterRange, isNumberInFilterRange } from "./lib/utils";
+import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, toComparableDate, toComparableNumber, isDateInFilterRange, isNumberInFilterRange, parseFieldDisplayNames } from "./lib/utils";
 import { unlocatedColumn } from "./lib/constants";
 import { getLocaleFromLanguageId, getStrings } from "./lib/strings";
 import { getClientUrl, loadWebResourceScript } from "./lib/load-validation-script";
@@ -353,27 +353,15 @@ const App = ({ context, notificationPosition }: IProps) => {
     }
   }, [filterPresetsParam, reportConfigError, clearConfigError]);
 
-  const fieldDisplayNamesOnCardMap = useMemo((): Map<string, string> => {
-    const raw = (context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw?.trim();
-    if (!raw) return new Map();
-    try {
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Map();
-      clearConfigError("fieldDisplayNamesOnCard");
-      const map = new Map<string, string>();
-      for (const e of arr) {
-        if (e && typeof e === "object" && "logicalName" in e && "displayName" in e) {
-          const name = String(e.logicalName).trim();
-          const displayName = String(e.displayName).trim();
-          if (name) map.set(name, displayName);
-        }
-      }
-      return map;
-    } catch (e) {
-      reportConfigError("fieldDisplayNamesOnCard", e instanceof Error ? e.message : String(e));
-      return new Map();
-    }
-  }, [(context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw, reportConfigError, clearConfigError]);
+  const fieldDisplayNamesOnCardMap = useMemo(
+    () => parseFieldDisplayNames(
+      (context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw,
+      locale,
+      reportConfigError,
+      clearConfigError,
+    ),
+    [(context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw, locale, reportConfigError, clearConfigError]
+  );
 
   const quickFilterFieldsConfig = useMemo((): QuickFilterFieldConfig[] => {
     if (!dataset?.columns) return [];
