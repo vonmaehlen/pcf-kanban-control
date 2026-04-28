@@ -229,30 +229,30 @@ const QuickFilters = () => {
         ))}
       </div>
       <div className="kanban-quick-filters-right">
-        <div className="kanban-quick-filters-popup-trigger" ref={popupFilterButtonRef}>
-          <IconButton
-            iconProps={{ iconName: "Filter" }}
-            title={strings.quickFiltersMoreFilters}
-            ariaLabel={strings.quickFiltersMoreFiltersOpen}
-            onClick={() => setPopupFilterOpen((v) => !v)}
-            className={`kanban-quick-filters-more-btn${activePopupCount > 0 ? " kanban-quick-filters-more-btn--active" : ""}`}
-          />
-          {activePopupCount > 0 && (
-            <span className="kanban-quick-filters-badge">{activePopupCount}</span>
-          )}
-          {popupFilterOpen && popupFilterButtonRef.current && (
-            <Callout
-              target={popupFilterButtonRef.current}
-              onDismiss={() => setPopupFilterOpen(false)}
-              directionalHint={4}
-              gapSpace={4}
-              className="kanban-quick-filters-callout"
-              setInitialFocus
-            >
-              <div className="kanban-quick-filters-popup-content">
-                <div className="kanban-quick-filters-popup-title">{strings.quickFiltersMoreFilters}</div>
-                {popupFilters.length > 0 ? (
-                  popupFilters.map((cfg) => (
+        {popupFilters.length > 0 && (
+          <div className="kanban-quick-filters-popup-trigger" ref={popupFilterButtonRef}>
+            <IconButton
+              iconProps={{ iconName: "Filter" }}
+              title={strings.quickFiltersMoreFilters}
+              ariaLabel={strings.quickFiltersMoreFiltersOpen}
+              onClick={() => setPopupFilterOpen((v) => !v)}
+              className={`kanban-quick-filters-more-btn${activePopupCount > 0 ? " kanban-quick-filters-more-btn--active" : ""}`}
+            />
+            {activePopupCount > 0 && (
+              <span className="kanban-quick-filters-badge">{activePopupCount}</span>
+            )}
+            {popupFilterOpen && popupFilterButtonRef.current && (
+              <Callout
+                target={popupFilterButtonRef.current}
+                onDismiss={() => setPopupFilterOpen(false)}
+                directionalHint={4}
+                gapSpace={4}
+                className="kanban-quick-filters-callout"
+                setInitialFocus
+              >
+                <div className="kanban-quick-filters-popup-content">
+                  <div className="kanban-quick-filters-popup-title">{strings.quickFiltersMoreFilters}</div>
+                  {popupFilters.map((cfg) => (
                     <div key={cfg.key} className="kanban-quick-filters-popup-row">
                       <span className="kanban-quick-filters-popup-label">{cfg.text}</span>
                       <div className="kanban-quick-filters-popup-dropdown">
@@ -266,14 +266,12 @@ const QuickFilters = () => {
                         )}
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="kanban-quick-filters-popup-empty">{strings.quickFilterAll}</div>
-                )}
-              </div>
-            </Callout>
-          )}
-        </div>
+                  ))}
+                </div>
+              </Callout>
+            )}
+          </div>
+        )}
         {filterPresetsConfig.length > 0 && (
           <div className="kanban-quick-filters-preset">
             <KanbanDropdown

@@ -50,10 +50,11 @@ Board → QuickFilters + CommandBar (view selector) + Column[] → ColumnHeader 
 
 ### Quick Filters (`components/quick-filters/QuickFilters.tsx`)
 
-Responsive filter bar above the board with inline dropdowns, a funnel button (right-aligned, always visible), sorting, filter presets, and search.
+Responsive filter bar above the board with inline dropdowns, a funnel button (right-aligned, only shown when there are popup filters), sorting, filter presets, and search.
 
 - **`inPopup: true` filters always stay in the popup** — they never render inline regardless of screen width.
 - **Responsive overflow:** Inline filters are measured via `ResizeObserver`. Filters that don't fit are moved into the funnel-button popup alongside the always-popup filters.
+- **Funnel button visibility:** The funnel button is hidden entirely when no filters end up in the popup (no `inPopup: true` filters configured AND all inline filters fit).
 - The funnel button shows a badge with the count of active hidden filters.
 - Layout: `[Inline filters...]  [Funnel ▼] [Preset ▼] [Sort ▼] [Search]`
 
