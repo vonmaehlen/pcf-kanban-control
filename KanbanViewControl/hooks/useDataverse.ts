@@ -1,11 +1,17 @@
 import { useMemo } from 'react';
 import { IInputs } from '../generated/ManifestTypes';
-import { isNullOrEmpty, orderStages } from '../lib/utils';
+import { isNullOrEmpty, orderStages, chunkArray } from '../lib/utils';
 import { ViewEntity } from '../interfaces';
 import { XrmService } from './service';
 
 export type ConfigErrorReporter = (property: string, message: string) => void;
 export type ClearConfigError = (property: string) => void;
+
+/**
+ * Anzahl Record-IDs pro In()-Filter bei der BPF-Stage-Abfrage. Alle IDs (bis 2500) in
+ * einer URL wuerden die URL-Laengenlimits sprengen; daher wird in Chunks abgefragt.
+ */
+const BPF_STAGE_QUERY_CHUNK_SIZE = 100;
 
 export const useDataverse = (context: ComponentFramework.Context<IInputs>, onConfigError?: ConfigErrorReporter, clearConfigError?: ClearConfigError) => {
     const { parameters, webAPI } = context;
@@ -131,19 +137,24 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
         const process = logicalName.includes("_") ? `_bpf_${entityName}id_value` : `${entityName}id_value`;
 
         const property = logicalName.includes("_") ? `bpf_${entityName}id` : `${entityName}id`;
-        const filter = `(Microsoft.Dynamics.CRM.In(PropertyName='${property}',PropertyValues=[${records.map(id => `'${id}'`).join(',')}]))`
 
-        const stages = await webAPI.retrieveMultipleRecords(
-            logicalName,
-            `?$select=_activestageid_value,_processid_value,${process}&$filter=${filter}&$expand=activestageid($select=stagename)`
+        // In Chunks abfragen, damit die In()-Filter-URL bei vielen Records nicht zu lang wird.
+        const chunks = chunkArray(records, BPF_STAGE_QUERY_CHUNK_SIZE);
+        const perChunk = await Promise.all(
+            chunks.map(async (chunk) => {
+                const filter = `(Microsoft.Dynamics.CRM.In(PropertyName='${property}',PropertyValues=[${chunk.map(id => `'${id}'`).join(',')}]))`
+                const stages = await webAPI.retrieveMultipleRecords(
+                    logicalName,
+                    `?$select=_activestageid_value,_processid_value,${process}&$filter=${filter}&$expand=activestageid($select=stagename)`
+                );
+                return stages.entities.map((item: any) => ({
+                    id: item[process],
+                    stageName: item.activestageid.stagename
+                }));
+            })
         );
 
-        return stages.entities.map((item: any) => {
-            return {
-                id: item[process],
-                stageName: item.activestageid.stagename
-            }
-        });
+        return perChunk.flat();
     }
 
     const retrieveStatusMetadata = async (logicalName: string): Promise<any> => {

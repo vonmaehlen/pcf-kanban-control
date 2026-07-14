@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.15";
+export const CONTROL_VERSION = "1.7.16";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 14;
+export const BUILD_NUMBER = 15;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "U4: Tastatur-DnD wiederhergestellt (Enter öffnet, Space nimmt Karte auf)";
+export const BUILD_DESCRIPTION = "P6: BPF-Stage-Abfrage chunkt Record-IDs (keine überlangen URLs mehr)";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
