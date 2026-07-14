@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.8";
+export const CONTROL_VERSION = "1.7.9";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 7;
+export const BUILD_NUMBER = 8;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "P2b: Karten via CardActionsContext entkoppelt + React.memo (weniger Re-Renders)";
+export const BUILD_DESCRIPTION = "DnD: optimistischer Move synchron (kein Zurückspringen der Karte mehr)";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
