@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { IInputs } from "../generated/ManifestTypes";
 import { isNullOrEmpty } from "../lib/utils";
 
@@ -142,7 +143,7 @@ async function ensureSharePointFolderExists(absoluteUrl: string): Promise<void> 
 export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
     const { dataset } = context.parameters;
 
-    const openForm = async (entityName: string, id?: string): Promise<void> => {
+    const openForm = useCallback(async (entityName: string, id?: string): Promise<void> => {
         const pageInput = {
             entityName: entityName,
             entityId: id,
@@ -151,10 +152,10 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
 
         //@ts-expect-error - Method does not exist in PCF SDK however it should be use to maintain control state alive
         await context.navigation.navigateTo(pageInput, popupOtions);
-    }
+    }, [context]);
 
     /** Opens the entity record in a new browser tab (_blank). */
-    const openEntityInNewTab = (entityName: string, id: string): void => {
+    const openEntityInNewTab = useCallback((entityName: string, id: string): void => {
         const baseUrl = getClientUrl();
         if (!baseUrl || !id) return;
         const url = `${baseUrl}/main.aspx?pagetype=entityrecord&etn=${encodeURIComponent(entityName)}&id=${encodeURIComponent(id)}`;
@@ -163,9 +164,9 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
         } else {
             context.navigation.openUrl(url);
         }
-    }
+    }, [context]);
 
-    const createNewRecord = async (field?: string, column?: string): Promise<void> => {
+    const createNewRecord = useCallback(async (field?: string, column?: string): Promise<void> => {
         const pageInput = {
             entityName: dataset.getTargetEntityType(),
             pageType: "entityrecord",
@@ -178,10 +179,10 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
 
         //@ts-expect-error - Method does not exist in PCF SDK however it should be use to maintain control state alive
         await context.navigation.navigateTo(pageInput, popupOtions);
-    }
+    }, [context, dataset]);
 
     /** Opens quick create form (or create form) for an activity entity with the given record as "regarding" (createFromEntity). */
-    const openCreateActivityForm = async (
+    const openCreateActivityForm = useCallback(async (
         activityEntityName: string,
         parentEntityName: string,
         parentId: string,
@@ -214,7 +215,7 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
             },
         };
         await nav.openForm(options, {});
-    };
+    }, [context]);
 
     /**
      * Returns the Web API entity set name for a given entity logical name (for @odata.bind).
@@ -283,7 +284,7 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
      * Opportunity-Hierarchie: SharePointSite → Account-Location → opportunity-Root → Opportunity-Location.
      * Siehe docs/SHAREPOINT_DEBUG.md.
      */
-    const openSharePointFolderInNewTab = async (
+    const openSharePointFolderInNewTab = useCallback(async (
         entityName: string,
         id: string,
         recordDisplayName?: string | null
@@ -477,13 +478,16 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
             const stack = err instanceof Error ? err.stack : undefined;
             console.warn(DEBUG, "Error", { message, stack, fullError: err });
         }
-    };
+    }, [context]);
 
-    return {
-        openForm,
-        openEntityInNewTab,
-        createNewRecord,
-        openCreateActivityForm,
-        openSharePointFolderInNewTab,
-    };
+    return useMemo(
+        () => ({
+            openForm,
+            openEntityInNewTab,
+            createNewRecord,
+            openCreateActivityForm,
+            openSharePointFolderInNewTab,
+        }),
+        [openForm, openEntityInNewTab, createNewRecord, openCreateActivityForm, openSharePointFolderInNewTab]
+    );
 }
