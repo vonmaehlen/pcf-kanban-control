@@ -69,6 +69,8 @@ export interface Strings {
 
   // Configuration errors banner
   configErrorsTitle: string;
+  configErrorsHint: string;
+  configErrorsDismiss: string;
 
   // Card action buttons (aria-label / title)
   cardActionCreateActivity: string;
@@ -138,6 +140,8 @@ const en: Strings = {
   resetFilters: "Reset filters",
 
   configErrorsTitle: "Configuration errors:",
+  configErrorsHint: "The control configuration is invalid. Please ask an administrator to review the affected properties.",
+  configErrorsDismiss: "Dismiss",
 
   cardActionCreateActivity: "Create activity",
   cardActionOpenSharePoint: "Open SharePoint folder",
@@ -205,6 +209,8 @@ const de: Strings = {
   resetFilters: "Filter zurücksetzen",
 
   configErrorsTitle: "Konfigurationsfehler:",
+  configErrorsHint: "Die Konfiguration des Steuerelements ist ungültig. Bitte lassen Sie die betroffenen Eigenschaften von einem Administrator prüfen.",
+  configErrorsDismiss: "Ausblenden",
 
   cardActionCreateActivity: "Aktivität anlegen",
   cardActionOpenSharePoint: "SharePoint-Ordner öffnen",

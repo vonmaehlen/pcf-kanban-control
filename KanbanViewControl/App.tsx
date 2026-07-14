@@ -177,6 +177,7 @@ const App = ({ context, notificationPosition }: IProps) => {
   const [activeViewEntity, setActiveViewEntity] = useState<ViewEntity | undefined>();
   const [isOpeningEntity, setIsOpeningEntity] = useState(false);
   const [configErrors, setConfigErrors] = useState<ConfigError[]>([]);
+  const [configErrorsDismissed, setConfigErrorsDismissed] = useState(false);
   const [quickFilterValues, setQuickFilterValuesState] = useState<Record<string, string | string[] | null>>(
     () =>
       quickFiltersStorageKey
@@ -866,6 +867,13 @@ const App = ({ context, notificationPosition }: IProps) => {
     handleColumnsChange();
   }, [context.parameters.dataset.columns]);
 
+  // Bei neuen/geänderten Konfigurationsfehlern das Ausblenden zurücksetzen, damit
+  // ein zuvor weggeklickter Banner bei einem neuen Fehler wieder erscheint.
+  const configErrorsSignature = configErrors.map((e) => `${e.property}:${e.message}`).join("|");
+  useEffect(() => {
+    setConfigErrorsDismissed(false);
+  }, [configErrorsSignature]);
+
   // Stabiler Wert für die Karten (siehe card-actions-context.ts): ändert sich nur bei
   // context/activeView/Callback-/Flag-Änderungen, NICHT bei Filter/Sort/Suche.
   const cardActions = useMemo(
@@ -947,9 +955,19 @@ const App = ({ context, notificationPosition }: IProps) => {
       <CardConfigContext.Provider value={cardConfig}>
       <CardActionsContext.Provider value={cardActions}>
       <div className="app-content-wrapper">
-        {configErrors.length > 0 && (
+        {configErrors.length > 0 && !configErrorsDismissed && (
           <div className="config-errors-banner" role="alert">
+            <button
+              type="button"
+              className="config-errors-dismiss"
+              aria-label={strings.configErrorsDismiss}
+              title={strings.configErrorsDismiss}
+              onClick={() => setConfigErrorsDismissed(true)}
+            >
+              ×
+            </button>
             <strong>{strings.configErrorsTitle}</strong>
+            <p className="config-errors-hint">{strings.configErrorsHint}</p>
             <ul>
               {configErrors.map((err, i) => (
                 <li key={i}>
