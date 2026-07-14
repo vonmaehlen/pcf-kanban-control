@@ -109,28 +109,38 @@ const Column = ({ column, widthPx }: { column: ColumnItem; widthPx?: number }) =
                   draggableId={item.id.toString()}
                   index={index}
                 >
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.dragHandleProps}
-                      {...provided.draggableProps}
-                      style={getItemStyle(snapshot, provided.draggableProps.style)}
-                      onClick={handleCardWrapperClick(item.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if ((e.key === "Enter" || e.key === " ") && !draggingRef.current) {
-                          e.preventDefault();
-                          openFormWithLoading(
-                            context.parameters.dataset.getTargetEntityType(),
-                            String(item.id)
-                          );
-                        }
-                      }}
-                    >
-                      <Card item={item} />
-                    </div>
-                  )}
+                  {(provided, snapshot) => {
+                    const dragHandleProps = provided.dragHandleProps;
+                    // dnd deklariert onKeyDown nicht im Typ, liefert ihn aber zur Laufzeit.
+                    const dragHandleKeyDown = (dragHandleProps as { onKeyDown?: React.KeyboardEventHandler<HTMLDivElement> } | null | undefined)?.onKeyDown;
+                    return (
+                      <div
+                        ref={provided.innerRef}
+                        {...dragHandleProps}
+                        {...provided.draggableProps}
+                        style={getItemStyle(snapshot, provided.draggableProps.style)}
+                        onClick={handleCardWrapperClick(item.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          // Enter öffnet den Datensatz. Space und Pfeiltasten bleiben dem
+                          // Drag-Handle vorbehalten, damit Tastatur-Drag&Drop von
+                          // @hello-pangea/dnd funktioniert (Space = aufnehmen/ablegen).
+                          if (e.key === "Enter" && !draggingRef.current) {
+                            e.preventDefault();
+                            openFormWithLoading(
+                              context.parameters.dataset.getTargetEntityType(),
+                              String(item.id)
+                            );
+                            return;
+                          }
+                          dragHandleKeyDown?.(e);
+                        }}
+                      >
+                        <Card item={item} />
+                      </div>
+                    );
+                  }}
                 </Draggable>
               ))}
             {!hasCards && !snapshot.isDraggingOver && <NoResults text={strings.noResultsInColumn} />}
