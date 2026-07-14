@@ -400,6 +400,28 @@ export function parseFieldNameSet(
     }
 }
 
+/** True, wenn ein Quick-Filter-Wert als "aktiv" zählt (nicht null, nicht leer). */
+export function isQuickFilterActive(value: string | string[] | null | undefined): boolean {
+    if (value == null) return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== "";
+}
+
+/**
+ * True, wenn aktuell irgendein Filter greift: Suchbegriff, ausgewähltes Preset
+ * oder mindestens ein gesetzter Quick-Filter. Genutzt für den "Filter zurücksetzen"-
+ * Button und die differenzierte Leerzustandsmeldung.
+ */
+export function hasActiveFilters(
+    quickFilterValues: Record<string, string | string[] | null>,
+    searchKeyword: string,
+    selectedFilterPresetId: string | null,
+): boolean {
+    if (searchKeyword.trim() !== "") return true;
+    if (selectedFilterPresetId != null) return true;
+    return Object.values(quickFilterValues).some(isQuickFilterActive);
+}
+
 export const getColumnValue = (
     record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
     column: ComponentFramework.PropertyHelper.DataSetApi.Column

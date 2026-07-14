@@ -11,6 +11,7 @@ import type { SortDirection } from "../../context/board-context";
 import type { QuickFilterFieldConfig } from "../../context/board-context";
 import { getStrings } from "../../lib/strings";
 import type { Strings } from "../../lib/strings";
+import { isQuickFilterActive, hasActiveFilters } from "../../lib/utils";
 
 const QUICK_FILTER_ALL_KEY = "__all__";
 const SORT_NONE_KEY = "__sort_none__";
@@ -114,13 +115,6 @@ function renderFilterControl(
   );
 }
 
-/** Check if a quick filter value counts as "active" (non-null, non-empty). */
-function isFilterActive(value: string | string[] | null | undefined): boolean {
-  if (value == null) return false;
-  if (Array.isArray(value)) return value.length > 0;
-  return value !== "";
-}
-
 const QuickFilters = () => {
   const {
     locale,
@@ -200,8 +194,16 @@ const QuickFilters = () => {
 
   // Count active filters in popup for badge
   const activePopupCount = popupFilters.filter(
-    (cfg) => isFilterActive(quickFilterValues[cfg.key])
+    (cfg) => isQuickFilterActive(quickFilterValues[cfg.key])
   ).length;
+
+  const filtersActive = hasActiveFilters(quickFilterValues, searchKeyword, selectedFilterPresetId);
+
+  const resetAllFilters = useCallback(() => {
+    applyFilterPreset(null); // leert alle Quick-Filter + Preset-Auswahl
+    setSearchKeyword("");
+    setInputValue(""); // lokalen Suchtext-State sofort leeren (Debounce)
+  }, [applyFilterPreset, setSearchKeyword]);
 
   useEffect(() => {
     setInputValue(searchKeyword);
@@ -271,6 +273,15 @@ const QuickFilters = () => {
               </Callout>
             )}
           </div>
+        )}
+        {filtersActive && (
+          <IconButton
+            iconProps={{ iconName: "ClearFilter" }}
+            title={strings.resetFilters}
+            ariaLabel={strings.resetFilters}
+            onClick={resetAllFilters}
+            className="kanban-quick-filters-reset-btn"
+          />
         )}
         {filterPresetsConfig.length > 0 && (
           <div className="kanban-quick-filters-preset">

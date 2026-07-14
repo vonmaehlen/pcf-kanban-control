@@ -61,7 +61,11 @@ export interface Strings {
 
   // Empty states
   noRecordsFound: string;
+  noRecordsForFilters: string;
   noResultsInColumn: string;
+
+  // Filter reset
+  resetFilters: string;
 
   // Configuration errors banner
   configErrorsTitle: string;
@@ -128,7 +132,10 @@ const en: Strings = {
   openingRecordLabel: "Opening record...",
 
   noRecordsFound: "No records found",
+  noRecordsForFilters: "No matches for the current filters",
   noResultsInColumn: "No results found",
+
+  resetFilters: "Reset filters",
 
   configErrorsTitle: "Configuration errors:",
 
@@ -192,7 +199,10 @@ const de: Strings = {
   openingRecordLabel: "Datensatz wird geöffnet...",
 
   noRecordsFound: "Keine Datensätze gefunden",
+  noRecordsForFilters: "Keine Treffer für die aktuellen Filter",
   noResultsInColumn: "Keine Treffer",
+
+  resetFilters: "Filter zurücksetzen",
 
   configErrorsTitle: "Konfigurationsfehler:",
 

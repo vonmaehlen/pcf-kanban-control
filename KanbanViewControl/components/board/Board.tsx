@@ -8,13 +8,14 @@ import {
 } from "@hello-pangea/dnd";
 import { BoardContext } from "../../context/board-context";
 import { useDnD } from "../../hooks/useDnD";
-import { pluralizedLogicalNames } from "../../lib/utils";
+import { pluralizedLogicalNames, hasActiveFilters } from "../../lib/utils";
 import { getStrings } from "../../lib/strings";
 
 const Board = () => {
-  const { locale, context, columns, selectedEntity, activeView, draggingRef } =
+  const { locale, context, columns, selectedEntity, activeView, draggingRef, quickFilterValues, searchKeyword, selectedFilterPresetId } =
     useContext(BoardContext);
   const strings = getStrings(locale);
+  const filtersActive = hasActiveFilters(quickFilterValues, searchKeyword, selectedFilterPresetId);
   const { onDragEnd } = useDnD(columns);
 
   const allowCardMove = useMemo(() => {
@@ -138,7 +139,7 @@ const Board = () => {
           {visibleColumns.length === 0 && (
             <div className="no-columns">
               <div className="no-data-content">
-                <span className="no-data-text">{strings.noRecordsFound}</span>
+                <span className="no-data-text">{filtersActive ? strings.noRecordsForFilters : strings.noRecordsFound}</span>
               </div>
             </div>
           )}
