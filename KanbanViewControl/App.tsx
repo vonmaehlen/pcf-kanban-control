@@ -92,11 +92,17 @@ function getQuickFilterComparableValue(fieldValue: unknown): string {
 
 /** Sortier-Schlüssel pro Karte: leer = immer ans Ende (unabhängig von asc/desc). */
 function getCardSortKey(card: Record<string, unknown>, sortByField: string): { comparable: number | string; empty: boolean } {
-  if (sortByField === "estimatedvalue") {
-    const raw = card.estimatedvalueRaw;
-    const num = typeof raw === "number" && !Number.isNaN(raw) ? raw : null;
-    return { comparable: num ?? 0, empty: num === null };
+  // Rohwert nutzen, falls vorhanden (in filterRecords als `${field}Raw` für Zahl-/
+  // Währungs- und Datumsfelder gesetzt) -> korrekte numerische bzw. chronologische
+  // Sortierung statt eines formatierten Strings wie "1.234,56 €" oder "14.07.2026".
+  const raw = card[`${sortByField}Raw`];
+  if (typeof raw === "number" && !Number.isNaN(raw)) {
+    return { comparable: raw, empty: false };
   }
+  if (raw instanceof Date) {
+    return { comparable: raw.getTime(), empty: false };
+  }
+  // Fallback: formatierter Textwert (String-Vergleich, numeric-aware in handleViewChange).
   const va = getQuickFilterComparableValue(card[sortByField]);
   const empty = va == null || String(va).trim() === "";
   return { comparable: va ?? "", empty };
@@ -637,11 +643,6 @@ const App = ({ context, notificationPosition }: IProps) => {
           cardData[name] = getColumnValue(record, col);
 
           const rawColVal = record.getValue(col.name);
-          if (col.name === "estimatedvalue") {
-            if (rawColVal !== null && rawColVal !== undefined) {
-              cardData.estimatedvalueRaw = rawColVal;
-            }
-          }
           const isDateValue =
             rawColVal instanceof Date ||
             (typeof rawColVal === "number" && rawColVal > 1000000000000);

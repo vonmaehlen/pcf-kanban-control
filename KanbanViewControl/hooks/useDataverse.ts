@@ -26,20 +26,6 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
         )
     }
 
-    const getStatusMetadata = async () => {
-        try {
-            const metadata = xrmService.fetch(`api/data/v9.2/EntityDefinitions(LogicalName='nl_opportunity')/Attributes/Microsoft.Dynamics.CRM.StatusAttributeMetadata?$select=LogicalName,DisplayName&$expand=OptionSet($select=Options,MetadataId)`)
-            const options = (metadata as any).OptionSet?.Options;
-
-            if (isNullOrEmpty(options))
-                return;
-
-            return options;
-        } catch (e) {
-            console.log(e)
-        }
-    }
-
     const getBusinessProcessFlows = async (logicalName: string, records: string[]) => {
         try {
             const stages = await webAPI.retrieveMultipleRecords(
@@ -229,7 +215,6 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
 
     return {
         updateRecord,
-        getStatusMetadata,
         getBusinessProcessFlows,
         getOptionSets,
         getRecordCurrentStage
