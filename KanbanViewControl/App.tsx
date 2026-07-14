@@ -7,6 +7,8 @@ import { ColumnItem, ViewItem, ViewEntity } from "./interfaces";
 import Loading from "./components/container/loading";
 import { Toaster } from "react-hot-toast";
 import { useDataverse } from "./hooks/useDataverse";
+import { useCardConfig } from "./hooks/useCardConfig";
+import { CardConfigContext } from "./context/card-config-context";
 import { useNavigation } from "./hooks/useNavigation";
 import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, toComparableDate, toComparableNumber, isDateInFilterRange, isNumberInFilterRange, parseFieldDisplayNames } from "./lib/utils";
 import { unlocatedColumn } from "./lib/constants";
@@ -267,6 +269,7 @@ const App = ({ context, notificationPosition }: IProps) => {
     (context as { userSettings?: { languageId?: number } }).userSettings?.languageId
   );
   const { getOptionSets, getBusinessProcessFlows } = useDataverse(context, reportConfigError, clearConfigError);
+  const cardConfig = useCardConfig(context, locale, reportConfigError, clearConfigError);
   const { openForm, openEntityInNewTab, openCreateActivityForm, openSharePointFolderInNewTab } = useNavigation(context);
   const { dataset } = context.parameters;
   const showOpenInNewTabButton = (context.parameters as { showOpenInNewTabButton?: { raw?: boolean } }).showOpenInNewTabButton?.raw === true;
@@ -894,6 +897,7 @@ const App = ({ context, notificationPosition }: IProps) => {
         cardMoveValidationFunctionName,
       }}
     >
+      <CardConfigContext.Provider value={cardConfig}>
       <div className="app-content-wrapper">
         {configErrors.length > 0 && (
           <div className="config-errors-banner" role="alert">
@@ -922,6 +926,7 @@ const App = ({ context, notificationPosition }: IProps) => {
           duration: 5000,
         }}
       />
+      </CardConfigContext.Provider>
     </BoardContext.Provider>
   );
 };

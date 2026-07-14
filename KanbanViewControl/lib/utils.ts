@@ -372,6 +372,34 @@ export function parseFieldDisplayNames(
     }
 }
 
+/**
+ * Parst eine Feldnamen-Liste in ein Set. Akzeptiert ein JSON-Array (z. B. ["a","b"])
+ * oder eine kommagetrennte Liste (z. B. "a,b"). Bei einem JSON-Parse-Fehler eines mit "["
+ * beginnenden Strings wird ein Config-Fehler gemeldet und auf CSV-Interpretation zurückgefallen.
+ */
+export function parseFieldNameSet(
+    raw: string | undefined | null,
+    propertyName: string,
+    reportConfigError?: (property: string, message: string) => void,
+    clearConfigError?: (property: string) => void,
+): Set<string> {
+    const trimmed = raw?.trim();
+    if (!trimmed) return new Set<string>();
+    try {
+        if (trimmed.startsWith("[")) {
+            const arr = JSON.parse(trimmed) as unknown;
+            clearConfigError?.(propertyName);
+            return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
+        }
+        return new Set(trimmed.split(",").map((s) => s.trim()).filter(Boolean));
+    } catch (e) {
+        if (trimmed.startsWith("[")) {
+            reportConfigError?.(propertyName, e instanceof Error ? e.message : String(e));
+        }
+        return new Set(trimmed.split(",").map((s) => s.trim()).filter(Boolean));
+    }
+}
+
 export const getColumnValue = (
     record: ComponentFramework.PropertyHelper.DataSetApi.EntityRecord,
     column: ComponentFramework.PropertyHelper.DataSetApi.Column

@@ -4,26 +4,12 @@ import { OpenRegular, CalendarRegular, FolderRegular } from "@fluentui/react-ico
 import CardHeader from "./CardHeader";
 import CardBody from "./CardBody";
 import { CardInfo, CardItem } from "../../interfaces";
-import { parseFieldDisplayNames } from "../../lib/utils";
 import { CardDetails, CardDetailsList } from "./CardDetails";
 import { useMemo, useCallback, useRef, useState } from "react";
 import { BoardContext } from "../../context/board-context";
+import { CardConfigContext } from "../../context/card-config-context";
 import { useContext } from "react";
 import { Spinner, SpinnerSize } from "@fluentui/react";
-
-export type HighlightType = "left" | "right" | "cornerTopRight" | "cornerBottomRight" | "cornerTopLeft" | "cornerBottomLeft";
-
-export interface BooleanFieldHighlightConfig {
-  logicalName: string;
-  color: string;
-  /** Highlight type: left/right border or diagonal corner (top-left, top-right, bottom-left, bottom-right). Default "left". First match per type wins. */
-  type?: HighlightType;
-}
-
-export interface FieldWidthConfig {
-  logicalName: string;
-  width: number;
-}
 
 interface IProps {
   item: CardItem;
@@ -70,7 +56,6 @@ const CLICK_MOVE_THRESHOLD_PX = 5;
 const Card = ({ item, draggable = true }: IProps) => {
   const {
     context,
-    locale,
     activeView,
     openFormWithLoading,
     openEntityInNewTab,
@@ -80,9 +65,23 @@ const Card = ({ item, draggable = true }: IProps) => {
     openCreateActivityForm,
     showSharePointFolderButton,
     openSharePointFolderInNewTab,
-    reportConfigError,
-    clearConfigError,
   } = useContext(BoardContext);
+  const {
+    hideColumnFieldOnCard,
+    hiddenFieldsOnCardSet,
+    fieldsVisiblePerStageMap,
+    htmlFieldsOnCardSet,
+    hideLabelForFieldsOnCardSet,
+    booleanFieldHighlights,
+    fieldWidthsOnCardMap,
+    lookupFieldsAsPersonaOnCardSet,
+    lookupFieldsPersonaIconOnlyOnCardSet,
+    showEmailAndPhoneAsLinks,
+    ellipsisFieldsOnCardSet,
+    lineBreakFieldsOnCardSet,
+    fieldMaxHeightOnCardMap,
+    fieldDisplayNamesOnCardMap,
+  } = useContext(CardConfigContext);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const [isSharePointLoading, setIsSharePointLoading] = useState(false);
   const [isCreatingActivity, setIsCreatingActivity] = useState(false);
@@ -121,251 +120,6 @@ const Card = ({ item, draggable = true }: IProps) => {
       }
     },
     [onCardClick]
-  );
-
-  const hideColumnFieldOnCard = useMemo(() => {
-    return context.parameters.hideColumnFieldOnCard?.raw === true;
-  }, [context.parameters]);
-
-  const hiddenFieldsOnCardSet = useMemo(() => {
-    const raw = context.parameters.hiddenFieldsOnCard?.raw?.trim();
-    if (!raw) return new Set<string>();
-    try {
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[")) {
-        const arr = JSON.parse(trimmed) as string[];
-        clearConfigError?.("hiddenFieldsOnCard");
-        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    } catch (e) {
-      if (raw.trim().startsWith("[")) {
-        reportConfigError?.("hiddenFieldsOnCard", e instanceof Error ? e.message : String(e));
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  }, [context.parameters.hiddenFieldsOnCard, reportConfigError, clearConfigError]);
-
-  /** Map: field logical name -> array of stage names where the field is visible. Empty map = no restriction. */
-  const fieldsVisiblePerStageMap = useMemo((): Map<string, string[]> => {
-    const raw = (context.parameters as { fieldsVisiblePerStage?: { raw?: string } }).fieldsVisiblePerStage?.raw?.trim();
-    if (!raw) return new Map();
-    try {
-      const obj = JSON.parse(raw);
-      if (obj == null || typeof obj !== "object") return new Map();
-      clearConfigError?.("fieldsVisiblePerStage");
-      const map = new Map<string, string[]>();
-      for (const [key, value] of Object.entries(obj)) {
-        const fieldName = String(key).trim();
-        if (!fieldName) continue;
-        const stages = Array.isArray(value)
-          ? (value as unknown[]).map((s) => String(s).trim()).filter(Boolean)
-          : [];
-        if (stages.length > 0) map.set(fieldName, stages);
-      }
-      return map;
-    } catch (e) {
-      reportConfigError?.("fieldsVisiblePerStage", e instanceof Error ? e.message : String(e));
-      return new Map();
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const htmlFieldsOnCardSet = useMemo(() => {
-    const raw = (context.parameters as { htmlFieldsOnCard?: { raw?: string } }).htmlFieldsOnCard?.raw?.trim();
-    if (!raw) return new Set<string>();
-    try {
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[")) {
-        const arr = JSON.parse(trimmed) as string[];
-        clearConfigError?.("htmlFieldsOnCard");
-        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    } catch (e) {
-      if (raw.trim().startsWith("[")) {
-        reportConfigError?.("htmlFieldsOnCard", e instanceof Error ? e.message : String(e));
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const hideLabelForFieldsOnCardSet = useMemo(() => {
-    const raw = (context.parameters as { hideLabelForFieldsOnCard?: { raw?: string } }).hideLabelForFieldsOnCard?.raw?.trim();
-    if (!raw) return new Set<string>();
-    try {
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[")) {
-        const arr = JSON.parse(trimmed) as string[];
-        clearConfigError?.("hideLabelForFieldsOnCard");
-        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    } catch (e) {
-      if (raw.trim().startsWith("[")) {
-        reportConfigError?.("hideLabelForFieldsOnCard", e instanceof Error ? e.message : String(e));
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const booleanFieldHighlights = useMemo((): BooleanFieldHighlightConfig[] => {
-    const raw = (context.parameters as { booleanFieldHighlights?: { raw?: string } }).booleanFieldHighlights?.raw?.trim();
-    if (!raw) return [];
-    try {
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return [];
-      clearConfigError?.("booleanFieldHighlights");
-      const validTypes: HighlightType[] = ["left", "right", "cornerTopRight", "cornerBottomRight", "cornerTopLeft", "cornerBottomLeft"];
-      return arr
-        .filter((e: unknown) => e && typeof e === "object" && "logicalName" in e && "color" in e)
-        .map((e: { logicalName: string; color: string; type?: string }) => {
-          const typeRaw = e.type != null ? String(e.type).trim() : "left";
-          const type = validTypes.includes(typeRaw as HighlightType) ? (typeRaw as HighlightType) : "left";
-          return {
-            logicalName: String(e.logicalName).trim(),
-            color: String(e.color).trim(),
-            type,
-          };
-        })
-        .filter((e) => e.logicalName && e.color);
-    } catch (e) {
-      reportConfigError?.("booleanFieldHighlights", e instanceof Error ? e.message : String(e));
-      return [];
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const fieldWidthsOnCardMap = useMemo((): Map<string, number> => {
-    const raw = (context.parameters as { fieldWidthsOnCard?: { raw?: string } }).fieldWidthsOnCard?.raw?.trim();
-    if (!raw) return new Map();
-    try {
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Map();
-      clearConfigError?.("fieldWidthsOnCard");
-      const map = new Map<string, number>();
-      for (const e of arr) {
-        if (e && typeof e === "object" && "logicalName" in e && "width" in e) {
-          const name = String(e.logicalName).trim();
-          const w = Number(e.width);
-          if (name && !isNaN(w) && w > 0 && w <= 100) map.set(name, w);
-        }
-      }
-      return map;
-    } catch (e) {
-      reportConfigError?.("fieldWidthsOnCard", e instanceof Error ? e.message : String(e));
-      return new Map();
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const lookupFieldsAsPersonaOnCardSet = useMemo(() => {
-    const raw = (context.parameters as { lookupFieldsAsPersonaOnCard?: { raw?: string } }).lookupFieldsAsPersonaOnCard?.raw?.trim();
-    if (!raw) return new Set<string>();
-    try {
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[")) {
-        const arr = JSON.parse(trimmed) as string[];
-        clearConfigError?.("lookupFieldsAsPersonaOnCard");
-        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    } catch (e) {
-      if (raw.trim().startsWith("[")) {
-        reportConfigError?.("lookupFieldsAsPersonaOnCard", e instanceof Error ? e.message : String(e));
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const lookupFieldsPersonaIconOnlyOnCardSet = useMemo(() => {
-    const raw = (context.parameters as { lookupFieldsPersonaIconOnlyOnCard?: { raw?: string } }).lookupFieldsPersonaIconOnlyOnCard?.raw?.trim();
-    if (!raw) return new Set<string>();
-    try {
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[")) {
-        const arr = JSON.parse(trimmed) as string[];
-        clearConfigError?.("lookupFieldsPersonaIconOnlyOnCard");
-        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    } catch (e) {
-      if (raw.trim().startsWith("[")) {
-        reportConfigError?.("lookupFieldsPersonaIconOnlyOnCard", e instanceof Error ? e.message : String(e));
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const showEmailAndPhoneAsLinks = useMemo(() => {
-    return (context.parameters as { showEmailAndPhoneAsLinks?: { raw?: boolean } }).showEmailAndPhoneAsLinks?.raw === true;
-  }, [context.parameters]);
-
-  const ellipsisFieldsOnCardSet = useMemo(() => {
-    const raw = (context.parameters as { ellipsisFieldsOnCard?: { raw?: string } }).ellipsisFieldsOnCard?.raw?.trim();
-    if (!raw) return new Set<string>();
-    try {
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[")) {
-        const arr = JSON.parse(trimmed) as string[];
-        clearConfigError?.("ellipsisFieldsOnCard");
-        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    } catch (e) {
-      if (raw.trim().startsWith("[")) {
-        reportConfigError?.("ellipsisFieldsOnCard", e instanceof Error ? e.message : String(e));
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const lineBreakFieldsOnCardSet = useMemo(() => {
-    const raw = (context.parameters as { lineBreakFieldsOnCard?: { raw?: string } }).lineBreakFieldsOnCard?.raw?.trim();
-    if (!raw) return new Set<string>();
-    try {
-      const trimmed = raw.trim();
-      if (trimmed.startsWith("[")) {
-        const arr = JSON.parse(trimmed) as string[];
-        clearConfigError?.("lineBreakFieldsOnCard");
-        return new Set(Array.isArray(arr) ? arr.map((s) => String(s).trim()).filter(Boolean) : []);
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    } catch (e) {
-      if (raw.trim().startsWith("[")) {
-        reportConfigError?.("lineBreakFieldsOnCard", e instanceof Error ? e.message : String(e));
-      }
-      return new Set(raw.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const fieldMaxHeightOnCardMap = useMemo((): Map<string, number> => {
-    const raw = (context.parameters as { fieldMaxHeightOnCard?: { raw?: string } }).fieldMaxHeightOnCard?.raw?.trim();
-    if (!raw) return new Map();
-    try {
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return new Map();
-      clearConfigError?.("fieldMaxHeightOnCard");
-      const map = new Map<string, number>();
-      for (const e of arr) {
-        if (e && typeof e === "object" && "logicalName" in e && "maxHeightPx" in e) {
-          const name = String(e.logicalName).trim();
-          const h = Number(e.maxHeightPx);
-          if (name && !isNaN(h) && h > 0) map.set(name, h);
-        }
-      }
-      return map;
-    } catch (e) {
-      reportConfigError?.("fieldMaxHeightOnCard", e instanceof Error ? e.message : String(e));
-      return new Map();
-    }
-  }, [context.parameters, reportConfigError, clearConfigError]);
-
-  const fieldDisplayNamesOnCardMap = useMemo(
-    () => parseFieldDisplayNames(
-      (context.parameters as { fieldDisplayNamesOnCard?: { raw?: string } }).fieldDisplayNamesOnCard?.raw,
-      locale,
-      reportConfigError ?? undefined,
-      clearConfigError ?? undefined,
-    ),
-    [context.parameters, locale, reportConfigError, clearConfigError]
   );
 
   const highlights = useMemo(() => {
