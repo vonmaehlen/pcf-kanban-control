@@ -6,6 +6,7 @@ import { isEntityReference, isNullOrEmpty, isEmailColumnDataType, isPhoneColumnD
 import { sanitizeHtml } from "../../lib/sanitize-html";
 import { Lookup } from "../lookup/Lookup";
 import { CardActionsContext } from "../../context/card-actions-context";
+import { getStrings } from "../../lib/strings";
 import { useContext } from "react";
 import { MultiType } from "../../interfaces/card.type";
 
@@ -51,7 +52,8 @@ function getColumnDataType(dataset: { columns?: { name: string; dataType?: strin
 }
 
 const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false, preserveLineBreaks = false, maxHeightPx }: ICardInfoProps) => {
-  const { context, openFormWithLoading } = useContext(CardActionsContext);
+  const { locale, context, openFormWithLoading } = useContext(CardActionsContext);
+  const strings = getStrings(locale);
   const htmlHostRef = useRef<HTMLDivElement>(null);
   const columnDataType = getColumnDataType(context.parameters?.dataset as { columns?: { name: string; dataType?: string }[] }, fieldName);
   const isEmailField = showEmailAndPhoneAsLinks && isEmailColumnDataType(columnDataType);
@@ -142,7 +144,7 @@ const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml =
                         href={linkHref}
                         onClick={onLinkClick}
                         rel="noopener noreferrer"
-                        aria-label={label ? (isEmailField ? `E-Mail: ${displayText}` : `Anrufen: ${displayText}`) : undefined}
+                        aria-label={label ? (isEmailField ? strings.cardAriaEmail(displayText) : strings.cardAriaPhone(displayText)) : undefined}
                         style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                       >
                         {displayText}

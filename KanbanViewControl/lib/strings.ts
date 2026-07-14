@@ -36,6 +36,7 @@ export interface Strings {
 
   // Quick filters & sort
   quickFilterAll: string;
+  quickFilterEmpty: string;
   quickFiltersMoreFilters: string;
   quickFiltersMoreFiltersOpen: string;
   quickFiltersSearchPlaceholder: string;
@@ -57,6 +58,22 @@ export interface Strings {
   // Loading
   loadingLabel: string;
   openingRecordLabel: string;
+
+  // Empty states
+  noRecordsFound: string;
+  noResultsInColumn: string;
+
+  // Configuration errors banner
+  configErrorsTitle: string;
+
+  // Card action buttons (aria-label / title)
+  cardActionCreateActivity: string;
+  cardActionOpenSharePoint: string;
+  cardActionOpenInNewTab: string;
+
+  // Card field links (aria-label)
+  cardAriaEmail: (value: string) => string;
+  cardAriaPhone: (value: string) => string;
 }
 
 const en: Strings = {
@@ -89,6 +106,7 @@ const en: Strings = {
   numberFilterMaxAriaLabel: "Maximum value",
 
   quickFilterAll: "(All)",
+  quickFilterEmpty: "(Empty)",
   quickFiltersMoreFilters: "More filters",
   quickFiltersMoreFiltersOpen: "Open more filters",
   quickFiltersSearchPlaceholder: "Search in all fields…",
@@ -108,6 +126,18 @@ const en: Strings = {
 
   loadingLabel: "Loading...",
   openingRecordLabel: "Opening record...",
+
+  noRecordsFound: "No records found",
+  noResultsInColumn: "No results found",
+
+  configErrorsTitle: "Configuration errors:",
+
+  cardActionCreateActivity: "Create activity",
+  cardActionOpenSharePoint: "Open SharePoint folder",
+  cardActionOpenInNewTab: "Open in new tab",
+
+  cardAriaEmail: (value) => `Email: ${value}`,
+  cardAriaPhone: (value) => `Call: ${value}`,
 };
 
 const de: Strings = {
@@ -140,6 +170,7 @@ const de: Strings = {
   numberFilterMaxAriaLabel: "Höchstwert",
 
   quickFilterAll: "(Alle)",
+  quickFilterEmpty: "(Leer)",
   quickFiltersMoreFilters: "Weitere Filter",
   quickFiltersMoreFiltersOpen: "Weitere Filter öffnen",
   quickFiltersSearchPlaceholder: "In allen Feldern suchen…",
@@ -159,6 +190,18 @@ const de: Strings = {
 
   loadingLabel: "Laden...",
   openingRecordLabel: "Datensatz wird geöffnet...",
+
+  noRecordsFound: "Keine Datensätze gefunden",
+  noResultsInColumn: "Keine Treffer",
+
+  configErrorsTitle: "Konfigurationsfehler:",
+
+  cardActionCreateActivity: "Aktivität anlegen",
+  cardActionOpenSharePoint: "SharePoint-Ordner öffnen",
+  cardActionOpenInNewTab: "In neuem Tab öffnen",
+
+  cardAriaEmail: (value) => `E-Mail: ${value}`,
+  cardAriaPhone: (value) => `Anrufen: ${value}`,
 };
 
 const stringsByLocale: Record<string, Strings> = {

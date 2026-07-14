@@ -269,6 +269,7 @@ const App = ({ context, notificationPosition }: IProps) => {
   const locale = getLocaleFromLanguageId(
     (context as { userSettings?: { languageId?: number } }).userSettings?.languageId
   );
+  const strings = getStrings(locale);
   const { getOptionSets, getBusinessProcessFlows } = useDataverse(context, reportConfigError, clearConfigError);
   const cardConfig = useCardConfig(context, locale, reportConfigError, clearConfigError);
   const { openForm, openEntityInNewTab, openCreateActivityForm, openSharePointFolderInNewTab } = useNavigation(context);
@@ -704,8 +705,8 @@ const App = ({ context, notificationPosition }: IProps) => {
         .sort((a, b) => a.localeCompare(b))
         .map((val) => ({ key: val, text: val }));
       optionsByField[cfg.key] = [
-        { key: QUICK_FILTER_ALL_KEY, text: "(Alle)" },
-        ...(hasEmpty ? [{ key: QUICK_FILTER_EMPTY_KEY, text: "(Leer)" }] : []),
+        { key: QUICK_FILTER_ALL_KEY, text: strings.quickFilterAll },
+        ...(hasEmpty ? [{ key: QUICK_FILTER_EMPTY_KEY, text: strings.quickFilterEmpty }] : []),
         ...valueOptions,
       ];
     }
@@ -805,6 +806,7 @@ const App = ({ context, notificationPosition }: IProps) => {
     searchKeyword,
     sortByField,
     sortDirection,
+    strings,
   ]);
 
   useEffect(() => {
@@ -867,6 +869,7 @@ const App = ({ context, notificationPosition }: IProps) => {
   // context/activeView/Callback-/Flag-Änderungen, NICHT bei Filter/Sort/Suche.
   const cardActions = useMemo(
     () => ({
+      locale,
       context,
       activeView,
       openFormWithLoading,
@@ -879,6 +882,7 @@ const App = ({ context, notificationPosition }: IProps) => {
       openSharePointFolderInNewTab,
     }),
     [
+      locale,
       context,
       activeView,
       openFormWithLoading,
@@ -944,7 +948,7 @@ const App = ({ context, notificationPosition }: IProps) => {
       <div className="app-content-wrapper">
         {configErrors.length > 0 && (
           <div className="config-errors-banner" role="alert">
-            <strong>Configuration errors:</strong>
+            <strong>{strings.configErrorsTitle}</strong>
             <ul>
               {configErrors.map((err, i) => (
                 <li key={i}>

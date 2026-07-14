@@ -9,10 +9,12 @@ import {
 import { BoardContext } from "../../context/board-context";
 import { useDnD } from "../../hooks/useDnD";
 import { pluralizedLogicalNames } from "../../lib/utils";
+import { getStrings } from "../../lib/strings";
 
 const Board = () => {
-  const { context, columns, selectedEntity, activeView, draggingRef } =
+  const { locale, context, columns, selectedEntity, activeView, draggingRef } =
     useContext(BoardContext);
+  const strings = getStrings(locale);
   const { onDragEnd } = useDnD(columns);
 
   const allowCardMove = useMemo(() => {
@@ -136,7 +138,7 @@ const Board = () => {
           {visibleColumns.length === 0 && (
             <div className="no-columns">
               <div className="no-data-content">
-                <span className="no-data-text">No records found</span>
+                <span className="no-data-text">{strings.noRecordsFound}</span>
               </div>
             </div>
           )}

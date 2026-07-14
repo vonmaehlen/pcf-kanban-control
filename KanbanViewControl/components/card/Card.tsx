@@ -8,6 +8,7 @@ import { CardDetails, CardDetailsList } from "./CardDetails";
 import { useMemo, useCallback, useRef, useState } from "react";
 import { CardActionsContext } from "../../context/card-actions-context";
 import { CardConfigContext } from "../../context/card-config-context";
+import { getStrings } from "../../lib/strings";
 import { useContext } from "react";
 import { Spinner, SpinnerSize } from "@fluentui/react";
 
@@ -55,6 +56,7 @@ const CLICK_MOVE_THRESHOLD_PX = 5;
 
 const Card = ({ item, draggable = true }: IProps) => {
   const {
+    locale,
     context,
     activeView,
     openFormWithLoading,
@@ -66,6 +68,7 @@ const Card = ({ item, draggable = true }: IProps) => {
     showSharePointFolderButton,
     openSharePointFolderInNewTab,
   } = useContext(CardActionsContext);
+  const strings = getStrings(locale);
   const {
     hideColumnFieldOnCard,
     hiddenFieldsOnCardSet,
@@ -212,8 +215,8 @@ const Card = ({ item, draggable = true }: IProps) => {
                 className="card-create-activity-btn"
                 disabled={isCreatingActivity}
                 aria-busy={isCreatingActivity}
-                aria-label="Aktivität anlegen"
-                title="Aktivität anlegen"
+                aria-label={strings.cardActionCreateActivity}
+                title={strings.cardActionCreateActivity}
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -240,8 +243,8 @@ const Card = ({ item, draggable = true }: IProps) => {
                 className="card-open-sharepoint-folder-btn"
                 disabled={isSharePointLoading}
                 aria-busy={isSharePointLoading}
-                aria-label="SharePoint-Ordner öffnen"
-                title="SharePoint-Ordner öffnen"
+                aria-label={strings.cardActionOpenSharePoint}
+                title={strings.cardActionOpenSharePoint}
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -270,8 +273,8 @@ const Card = ({ item, draggable = true }: IProps) => {
                   e.preventDefault();
                   openEntityInNewTab(context.parameters.dataset.getTargetEntityType(), item.id.toString());
                 }}
-                aria-label="In neuem Tab öffnen"
-                title="In neuem Tab öffnen"
+                aria-label={strings.cardActionOpenInNewTab}
+                title={strings.cardActionOpenInNewTab}
               >
                 <OpenRegular />
               </button>

@@ -13,6 +13,8 @@ import { IInputs } from "../generated/ManifestTypes";
  * bleibt (nur context/activeView/Callbacks), greift React.memo an den Karten.
  */
 export interface ICardActionsContext {
+  /** App-Locale (z. B. "en", "de") für lokalisierte UI-Strings auf der Karte. */
+  locale: string;
   context: ComponentFramework.Context<IInputs>;
   activeView: ViewItem | undefined;
   openFormWithLoading: (entityName: string, id?: string) => Promise<void>;
