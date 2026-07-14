@@ -5,7 +5,7 @@ import { Text } from "@fluentui/react/lib/Text";
 import { isEntityReference, isNullOrEmpty, isEmailColumnDataType, isPhoneColumnDataType } from "../../lib/utils";
 import { sanitizeHtml } from "../../lib/sanitize-html";
 import { Lookup } from "../lookup/Lookup";
-import { BoardContext } from "../../context/board-context";
+import { CardActionsContext } from "../../context/card-actions-context";
 import { useContext } from "react";
 import { MultiType } from "../../interfaces/card.type";
 
@@ -51,7 +51,7 @@ function getColumnDataType(dataset: { columns?: { name: string; dataType?: strin
 }
 
 const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false, preserveLineBreaks = false, maxHeightPx }: ICardInfoProps) => {
-  const { context, openFormWithLoading } = useContext(BoardContext);
+  const { context, openFormWithLoading } = useContext(CardActionsContext);
   const htmlHostRef = useRef<HTMLDivElement>(null);
   const columnDataType = getColumnDataType(context.parameters?.dataset as { columns?: { name: string; dataType?: string }[] }, fieldName);
   const isEmailField = showEmailAndPhoneAsLinks && isEmailColumnDataType(columnDataType);
@@ -190,4 +190,8 @@ const CardDetailsList = ({ children }: IProps) => {
   );
 }
 
-export { CardDetailsList, CardDetails };
+// React.memo: Feld rendert nur neu, wenn sich seine Props ändern. Props (info, config-
+// abgeleitete Flags) sind dank P1/P4 referenz- bzw. wertstabil bei Filter/Sort/Suche.
+const MemoizedCardDetails = React.memo(CardDetails);
+
+export { CardDetailsList, MemoizedCardDetails as CardDetails };

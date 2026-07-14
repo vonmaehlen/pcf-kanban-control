@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import { useDataverse } from "./hooks/useDataverse";
 import { useCardConfig } from "./hooks/useCardConfig";
 import { CardConfigContext } from "./context/card-config-context";
+import { CardActionsContext } from "./context/card-actions-context";
 import { useNavigation } from "./hooks/useNavigation";
 import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, toComparableDate, toComparableNumber, isDateInFilterRange, isNumberInFilterRange, parseFieldDisplayNames } from "./lib/utils";
 import { unlocatedColumn } from "./lib/constants";
@@ -862,6 +863,35 @@ const App = ({ context, notificationPosition }: IProps) => {
     handleColumnsChange();
   }, [context.parameters.dataset.columns]);
 
+  // Stabiler Wert für die Karten (siehe card-actions-context.ts): ändert sich nur bei
+  // context/activeView/Callback-/Flag-Änderungen, NICHT bei Filter/Sort/Suche.
+  const cardActions = useMemo(
+    () => ({
+      context,
+      activeView,
+      openFormWithLoading,
+      openEntityInNewTab,
+      showOpenInNewTabButton,
+      showCreateActivityButton,
+      createActivityEntityType,
+      openCreateActivityForm,
+      showSharePointFolderButton,
+      openSharePointFolderInNewTab,
+    }),
+    [
+      context,
+      activeView,
+      openFormWithLoading,
+      openEntityInNewTab,
+      showOpenInNewTabButton,
+      showCreateActivityButton,
+      createActivityEntityType,
+      openCreateActivityForm,
+      showSharePointFolderButton,
+      openSharePointFolderInNewTab,
+    ]
+  );
+
   if (isLoading) {
     return <Loading label={getStrings(locale).loadingLabel} />;
   }
@@ -910,6 +940,7 @@ const App = ({ context, notificationPosition }: IProps) => {
       }}
     >
       <CardConfigContext.Provider value={cardConfig}>
+      <CardActionsContext.Provider value={cardActions}>
       <div className="app-content-wrapper">
         {configErrors.length > 0 && (
           <div className="config-errors-banner" role="alert">
@@ -938,6 +969,7 @@ const App = ({ context, notificationPosition }: IProps) => {
           duration: 5000,
         }}
       />
+      </CardActionsContext.Provider>
       </CardConfigContext.Provider>
     </BoardContext.Provider>
   );

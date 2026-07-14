@@ -6,7 +6,7 @@ import CardBody from "./CardBody";
 import { CardInfo, CardItem } from "../../interfaces";
 import { CardDetails, CardDetailsList } from "./CardDetails";
 import { useMemo, useCallback, useRef, useState } from "react";
-import { BoardContext } from "../../context/board-context";
+import { CardActionsContext } from "../../context/card-actions-context";
 import { CardConfigContext } from "../../context/card-config-context";
 import { useContext } from "react";
 import { Spinner, SpinnerSize } from "@fluentui/react";
@@ -65,7 +65,7 @@ const Card = ({ item, draggable = true }: IProps) => {
     openCreateActivityForm,
     showSharePointFolderButton,
     openSharePointFolderInNewTab,
-  } = useContext(BoardContext);
+  } = useContext(CardActionsContext);
   const {
     hideColumnFieldOnCard,
     hiddenFieldsOnCardSet,
@@ -308,4 +308,7 @@ const Card = ({ item, draggable = true }: IProps) => {
   );
 }
 
-export default Card;
+// React.memo: Karte rendert nur neu, wenn sich item/draggable ändern. Da Card jetzt nur
+// noch CardActionsContext + CardConfigContext (beide stabil bei Filter/Sort/Suche) und
+// referenzstabile item-Objekte (P4) konsumiert, entfallen Re-Renders bei diesen Interaktionen.
+export default React.memo(Card);
