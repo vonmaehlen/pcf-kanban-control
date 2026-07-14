@@ -3,7 +3,7 @@
   <control 
     namespace="novalogica" 
     constructor="KanbanViewControl" 
-    version="1.7.16"
+    version="1.7.17"
     display-name-key="Kanban View Control" 
     description-key="PowerApps Component Framework control (PCF) that allows users to see records in a kanban view format." 
     control-type="virtual"
@@ -27,17 +27,26 @@
       required="false"
     />
 
-    <property 
-      name="businessProcessFlowStepOrder" 
-      display-name-key="Business Process Flow Step Order" 
+    <property
+      name="businessProcessFlowStepOrder"
+      display-name-key="Business Process Flow Step Order"
       description-key="Provide a JSON array to control the order of business process flow stages (e.g. [{&quot;id&quot;:&quot;Develop&quot;,&quot;order&quot;:2}])."
-      of-type="SingleLine.TextArea" 
-      usage="input" 
+      of-type="SingleLine.TextArea"
+      usage="input"
       required="false"
     />
 
-    <property 
-      name="hideViewBy" 
+    <property
+      name="disableBusinessProcessFlows"
+      display-name-key="Disable Business Process Flows"
+      description-key="When enabled, Business Process Flows are not loaded and not offered as views. Use this when the entity has no relevant BPFs (or you do not want them) to avoid unnecessary queries while the board loads."
+      of-type="TwoOptions"
+      usage="input"
+      required="false"
+    />
+
+    <property
+      name="hideViewBy"
       display-name-key="Hide View By if default View By set?" 
       of-type="TwoOptions" 
       usage="input" 

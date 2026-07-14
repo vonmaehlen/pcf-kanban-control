@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.16";
+export const CONTROL_VERSION = "1.7.17";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 15;
+export const BUILD_NUMBER = 16;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "P6: BPF-Stage-Abfrage chunkt Record-IDs (keine überlangen URLs mehr)";
+export const BUILD_DESCRIPTION = "BPF-Laden per Property 'Disable Business Process Flows' abschaltbar";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;

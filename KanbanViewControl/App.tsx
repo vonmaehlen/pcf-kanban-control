@@ -832,10 +832,12 @@ const App = ({ context, notificationPosition }: IProps) => {
       return;
     }
 
-    const process = await getBusinessProcessFlows(
-      dataset.getTargetEntityType(),
-      recordIds
-    );
+    const disableBpf =
+      (context.parameters as { disableBusinessProcessFlows?: { raw?: boolean } })
+        .disableBusinessProcessFlows?.raw === true;
+    const process = disableBpf
+      ? []
+      : await getBusinessProcessFlows(dataset.getTargetEntityType(), recordIds);
     const allViews = [...(options ?? []), ...(process ?? [])];
 
     if (allViews === undefined) {
