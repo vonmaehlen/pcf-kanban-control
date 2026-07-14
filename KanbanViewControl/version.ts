@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.5";
+export const CONTROL_VERSION = "1.7.6";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 4;
+export const BUILD_NUMBER = 5;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "P3: filterRecords entquadratisiert (Mutation + Vorab-Maps)";
+export const BUILD_DESCRIPTION = "P4: Karten-Transformation memoisiert (stabile Karten bei Filter/Sort/Suche)";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;

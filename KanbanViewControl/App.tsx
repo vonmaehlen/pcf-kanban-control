@@ -594,10 +594,100 @@ const App = ({ context, notificationPosition }: IProps) => {
     }
   }, [openForm]);
 
+  const filterRecords = useCallback(
+    (activeView: ViewItem, quickFilterFieldsList: string[]) => {
+      const columns = dataset.columns;
+      // Vorab-Lookups (einmal pro Aufruf) statt find() pro Record -> vermeidet O(n^2):
+      // - Stage pro Record-Id (nur bei BPF-Views)
+      // - Spalte pro Feldname (für die Quick-Filter-Felder)
+      const bpfStageById =
+        activeView.type === "BPF" && activeView.records
+          ? new Map(activeView.records.map((r) => [r.id, r.stageName]))
+          : null;
+      const columnByName = new Map(columns.map((c) => [c.name, c]));
+
+      return Object.entries(dataset.records).map(([id, record]) => {
+        // Mutierendes Zielobjekt statt {...acc}-Spread pro Spalte (vermeidet O(columns^2)).
+        const cardData: Record<string, unknown> = { id };
+
+        columns.forEach((col, index) => {
+          if (col.name === activeView.key) {
+            const targetColumn =
+              activeView.columns !== undefined
+                ? activeView.columns.find(
+                    (column) => column.title === record.getFormattedValue(col.name)
+                  )
+                : { id: null };
+            cardData.column = targetColumn ? targetColumn.id : "unallocated";
+          }
+
+          if (activeView.type === "BPF") {
+            cardData.column = bpfStageById?.get(id) ?? "";
+          }
+
+          const name = index === 0 ? "title" : col.name;
+          const hasDisplayName = col.displayName != null && String(col.displayName).trim() !== "";
+
+          if (!hasDisplayName) {
+            return;
+          }
+
+          cardData[name] = getColumnValue(record, col);
+
+          const rawColVal = record.getValue(col.name);
+          if (col.name === "estimatedvalue") {
+            if (rawColVal !== null && rawColVal !== undefined) {
+              cardData.estimatedvalueRaw = rawColVal;
+            }
+          }
+          const isDateValue =
+            rawColVal instanceof Date ||
+            (typeof rawColVal === "number" && rawColVal > 1000000000000);
+          const isNumericValue =
+            typeof rawColVal === "number" && !Number.isNaN(rawColVal) && rawColVal < 1000000000000;
+          if (
+            isDateValue ||
+            isDateColumnDataType((col as { dataType?: string | number }).dataType)
+          ) {
+            if (rawColVal !== null && rawColVal !== undefined) {
+              cardData[`${col.name}Raw`] = rawColVal;
+            }
+          }
+          if (
+            isNumericValue ||
+            isNumberColumnDataType((col as { dataType?: string | number }).dataType)
+          ) {
+            if (rawColVal !== null && rawColVal !== undefined) {
+              cardData[`${col.name}Raw`] = rawColVal;
+            }
+          }
+        });
+
+        for (const fieldName of quickFilterFieldsList) {
+          const col = columnByName.get(fieldName);
+          if (col && !(col.name in cardData)) {
+            cardData[col.name] = getColumnValue(record, col);
+          }
+        }
+        return cardData;
+      });
+    },
+    [dataset.records, dataset.columns]
+  );
+
+  // Rohtransformation Record -> Karte, memoisiert: läuft NUR neu, wenn sich Daten
+  // (filterRecords hängt an dataset.records/columns), View oder Quick-Filter-Felder
+  // ändern. NICHT bei Filter-/Sortier-/Sucheingaben -> Karten-Objekte bleiben
+  // referenzstabil (Voraussetzung für React.memo an den Karten).
+  const transformedCards = useMemo<Record<string, unknown>[]>(() => {
+    if (activeView === undefined || activeView.columns === undefined) return [];
+    return filterRecords(activeView, quickFilterFieldsParsed);
+  }, [filterRecords, activeView, quickFilterFieldsParsed, datasetRecordsKey]);
+
   const handleViewChange = useCallback(() => {
     if (activeView === undefined || activeView.columns === undefined) return;
 
-    const allCards: any[] = filterRecords(activeView, quickFilterFieldsParsed);
+    const allCards: any[] = transformedCards;
 
     const optionsByField: Record<string, IDropdownOption[]> = {};
     for (const cfg of quickFilterFieldsConfig) {
@@ -707,16 +797,13 @@ const App = ({ context, notificationPosition }: IProps) => {
 
     setColumns(columns);
   }, [
+    transformedCards,
     activeView,
-    quickFilterFieldsParsed,
     quickFilterFieldsConfig,
     quickFilterValues,
     searchKeyword,
     sortByField,
     sortDirection,
-    dataset.records,
-    datasetRecordsKey,
-    context,
   ]);
 
   useEffect(() => {
@@ -774,87 +861,6 @@ const App = ({ context, notificationPosition }: IProps) => {
     setSelectedEntity(dataset.getTargetEntityType());
     handleColumnsChange();
   }, [context.parameters.dataset.columns]);
-
-  const filterRecords = useCallback(
-    (activeView: ViewItem, quickFilterFieldsList: string[]) => {
-      const columns = dataset.columns;
-      // Vorab-Lookups (einmal pro Aufruf) statt find() pro Record -> vermeidet O(n^2):
-      // - Stage pro Record-Id (nur bei BPF-Views)
-      // - Spalte pro Feldname (für die Quick-Filter-Felder)
-      const bpfStageById =
-        activeView.type === "BPF" && activeView.records
-          ? new Map(activeView.records.map((r) => [r.id, r.stageName]))
-          : null;
-      const columnByName = new Map(columns.map((c) => [c.name, c]));
-
-      return Object.entries(dataset.records).map(([id, record]) => {
-        // Mutierendes Zielobjekt statt {...acc}-Spread pro Spalte (vermeidet O(columns^2)).
-        const cardData: Record<string, unknown> = { id };
-
-        columns.forEach((col, index) => {
-          if (col.name === activeView.key) {
-            const targetColumn =
-              activeView.columns !== undefined
-                ? activeView.columns.find(
-                    (column) => column.title === record.getFormattedValue(col.name)
-                  )
-                : { id: null };
-            cardData.column = targetColumn ? targetColumn.id : "unallocated";
-          }
-
-          if (activeView.type === "BPF") {
-            cardData.column = bpfStageById?.get(id) ?? "";
-          }
-
-          const name = index === 0 ? "title" : col.name;
-          const hasDisplayName = col.displayName != null && String(col.displayName).trim() !== "";
-
-          if (!hasDisplayName) {
-            return;
-          }
-
-          cardData[name] = getColumnValue(record, col);
-
-          const rawColVal = record.getValue(col.name);
-          if (col.name === "estimatedvalue") {
-            if (rawColVal !== null && rawColVal !== undefined) {
-              cardData.estimatedvalueRaw = rawColVal;
-            }
-          }
-          const isDateValue =
-            rawColVal instanceof Date ||
-            (typeof rawColVal === "number" && rawColVal > 1000000000000);
-          const isNumericValue =
-            typeof rawColVal === "number" && !Number.isNaN(rawColVal) && rawColVal < 1000000000000;
-          if (
-            isDateValue ||
-            isDateColumnDataType((col as { dataType?: string | number }).dataType)
-          ) {
-            if (rawColVal !== null && rawColVal !== undefined) {
-              cardData[`${col.name}Raw`] = rawColVal;
-            }
-          }
-          if (
-            isNumericValue ||
-            isNumberColumnDataType((col as { dataType?: string | number }).dataType)
-          ) {
-            if (rawColVal !== null && rawColVal !== undefined) {
-              cardData[`${col.name}Raw`] = rawColVal;
-            }
-          }
-        });
-
-        for (const fieldName of quickFilterFieldsList) {
-          const col = columnByName.get(fieldName);
-          if (col && !(col.name in cardData)) {
-            cardData[col.name] = getColumnValue(record, col);
-          }
-        }
-        return cardData;
-      });
-    },
-    [dataset.records, dataset.columns]
-  );
 
   if (isLoading) {
     return <Loading label={getStrings(locale).loadingLabel} />;
