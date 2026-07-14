@@ -179,17 +179,35 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
                 `?$filter=(objecttypecode eq '${entityLogicalName}' and (${filter}))`
             );
 
+            const userLang = context.userSettings.languageId;
+
             const columns = datasetColumns.map((column) => {
-                const options = columnOptions.entities
-                    .filter((option: any) => option.attributename == column.name)
-                    .filter((option: any) => option.langid == context.userSettings.languageId)
-                    .map((option: any) => ({
-                        key: option.attributevalue,
-                        id: option.attributevalue,
-                        label: option.value,
-                        title: option.value,
-                        order: option.displayorder
-                    }));
+                const columnEntries = columnOptions.entities.filter(
+                    (option: any) => option.attributename == column.name
+                );
+
+                // Pro Options-Wert (attributevalue) das Label in der Benutzersprache
+                // bevorzugen. Fehlt die Übersetzung, auf einen anderen gepflegten
+                // Sprach-Eintrag zurückfallen, damit die Spalte trotzdem existiert
+                // (sonst würden Karten dieses Werts ganz verschwinden).
+                const optionByValue = new Map<string, any>();
+                for (const opt of columnEntries) {
+                    const value = String(opt.attributevalue);
+                    const current = optionByValue.get(value);
+                    if (current == null) {
+                        optionByValue.set(value, opt);
+                    } else if (opt.langid == userLang && current.langid != userLang) {
+                        optionByValue.set(value, opt);
+                    }
+                }
+
+                const options = Array.from(optionByValue.values()).map((option: any) => ({
+                    key: option.attributevalue,
+                    id: option.attributevalue,
+                    label: option.value,
+                    title: option.value,
+                    order: option.displayorder
+                }));
 
                 return {
                     key: column.name,

@@ -621,10 +621,14 @@ const App = ({ context, notificationPosition }: IProps) => {
 
         columns.forEach((col, index) => {
           if (col.name === activeView.key) {
+            // Zuordnung über die numerische OptionSet-ID (sprachunabhängig), nicht über
+            // das angezeigte Label. Damit ist die Spaltenzuordnung unabhängig davon, in
+            // welcher Sprache die stringmap-Werte gepflegt/übersetzt sind.
+            const rawValue = record.getValue(col.name);
             const targetColumn =
               activeView.columns !== undefined
                 ? activeView.columns.find(
-                    (column) => column.title === record.getFormattedValue(col.name)
+                    (column) => rawValue != null && String(column.id) === String(rawValue)
                   )
                 : { id: null };
             cardData.column = targetColumn ? targetColumn.id : "unallocated";
@@ -768,8 +772,15 @@ const App = ({ context, notificationPosition }: IProps) => {
     let activeColumns = activeView?.columns ?? [];
     if (
       activeView.type != "BPF" &&
-      (filteredCards.some((card: any) => !(activeView.key in card)) ||
-        filteredCards.some((card: any) => card[activeView.key]?.value === ""))
+      filteredCards.some(
+        (card: any) =>
+          // Karte konnte keiner Spalte zugeordnet werden (z. B. Options-Wert ohne
+          // passendes Spalten-Label) -> muss in der Unallocated-Spalte sichtbar sein,
+          // statt ganz zu verschwinden.
+          card?.column === unlocatedColumn.id ||
+          !(activeView.key in card) ||
+          card[activeView.key]?.value === ""
+      )
     ) {
       activeColumns = [unlocatedColumn, ...activeColumns];
     }
