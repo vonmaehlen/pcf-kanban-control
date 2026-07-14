@@ -777,42 +777,50 @@ const App = ({ context, notificationPosition }: IProps) => {
 
   const filterRecords = useCallback(
     (activeView: ViewItem, quickFilterFieldsList: string[]) => {
+      const columns = dataset.columns;
+      // Vorab-Lookups (einmal pro Aufruf) statt find() pro Record -> vermeidet O(n^2):
+      // - Stage pro Record-Id (nur bei BPF-Views)
+      // - Spalte pro Feldname (für die Quick-Filter-Felder)
+      const bpfStageById =
+        activeView.type === "BPF" && activeView.records
+          ? new Map(activeView.records.map((r) => [r.id, r.stageName]))
+          : null;
+      const columnByName = new Map(columns.map((c) => [c.name, c]));
+
       return Object.entries(dataset.records).map(([id, record]) => {
-        const columnValues = dataset.columns.reduce((acc, col, index) => {
+        // Mutierendes Zielobjekt statt {...acc}-Spread pro Spalte (vermeidet O(columns^2)).
+        const cardData: Record<string, unknown> = { id };
+
+        columns.forEach((col, index) => {
           if (col.name === activeView.key) {
             const targetColumn =
               activeView.columns !== undefined
                 ? activeView.columns.find(
-                    (column) =>
-                      column.title === record.getFormattedValue(col.name)
+                    (column) => column.title === record.getFormattedValue(col.name)
                   )
                 : { id: null };
-            const key = targetColumn ? targetColumn.id : "unallocated";
-            acc = { ...acc, column: key };
+            cardData.column = targetColumn ? targetColumn.id : "unallocated";
           }
 
           if (activeView.type === "BPF") {
-            const key =
-              activeView.records?.find((val) => val.id === id)?.stageName ?? "";
-            acc = { ...acc, column: key };
+            cardData.column = bpfStageById?.get(id) ?? "";
           }
 
           const name = index === 0 ? "title" : col.name;
           const hasDisplayName = col.displayName != null && String(col.displayName).trim() !== "";
 
           if (!hasDisplayName) {
-            return { ...acc };
+            return;
           }
 
-          const columnValue = getColumnValue(record, col);
-          let result: Record<string, unknown> = { ...acc, [name]: columnValue };
+          cardData[name] = getColumnValue(record, col);
+
+          const rawColVal = record.getValue(col.name);
           if (col.name === "estimatedvalue") {
-            const rawValue = record.getValue(col.name);
-            if (rawValue !== null && rawValue !== undefined) {
-              result = { ...result, estimatedvalueRaw: rawValue };
+            if (rawColVal !== null && rawColVal !== undefined) {
+              cardData.estimatedvalueRaw = rawColVal;
             }
           }
-          const rawColVal = record.getValue(col.name);
           const isDateValue =
             rawColVal instanceof Date ||
             (typeof rawColVal === "number" && rawColVal > 1000000000000);
@@ -823,7 +831,7 @@ const App = ({ context, notificationPosition }: IProps) => {
             isDateColumnDataType((col as { dataType?: string | number }).dataType)
           ) {
             if (rawColVal !== null && rawColVal !== undefined) {
-              result = { ...result, [`${col.name}Raw`]: rawColVal };
+              cardData[`${col.name}Raw`] = rawColVal;
             }
           }
           if (
@@ -831,15 +839,13 @@ const App = ({ context, notificationPosition }: IProps) => {
             isNumberColumnDataType((col as { dataType?: string | number }).dataType)
           ) {
             if (rawColVal !== null && rawColVal !== undefined) {
-              result = { ...result, [`${col.name}Raw`]: rawColVal };
+              cardData[`${col.name}Raw`] = rawColVal;
             }
           }
-          return result;
-        }, {} as Record<string, unknown>);
+        });
 
-        const cardData = { id, ...columnValues } as Record<string, unknown>;
         for (const fieldName of quickFilterFieldsList) {
-          const col = dataset.columns.find((c) => c.name === fieldName);
+          const col = columnByName.get(fieldName);
           if (col && !(col.name in cardData)) {
             cardData[col.name] = getColumnValue(record, col);
           }
