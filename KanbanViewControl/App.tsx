@@ -827,9 +827,8 @@ const App = ({ context, notificationPosition }: IProps) => {
   }, [handleViewChange]);
 
   const handleColumnsChange = async () => {
-    const options = await getOptionSets(undefined);
     const recordIds = Object.keys(dataset.records);
-    if (Object.keys(dataset.records).length <= 0) {
+    if (recordIds.length <= 0) {
       setIsLoading(false);
       return;
     }
@@ -837,11 +836,15 @@ const App = ({ context, notificationPosition }: IProps) => {
     if (
       context.parameters.dataset.paging != null &&
       context.parameters.dataset.paging.hasNextPage == true &&
-      Object.keys(dataset.records).length < 2500
+      recordIds.length < 2500
     ) {
       context.parameters.dataset.paging.loadNextPage();
       return;
     }
+
+    // Metadaten erst laden, wenn alle Seiten geladen sind. Sonst wird getOptionSets
+    // (stringmap-Abfrage) bei jeder Paging-Iteration ausgeführt und sofort verworfen.
+    const options = await getOptionSets(undefined);
 
     const disableBpf =
       (context.parameters as { disableBusinessProcessFlows?: { raw?: boolean } })
