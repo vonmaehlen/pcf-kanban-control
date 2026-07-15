@@ -184,7 +184,6 @@ const App = ({ context, notificationPosition }: IProps) => {
         ? (loadStoredQuickFilters(quickFiltersStorageKey)?.quickFilterValues ?? {})
         : {}
   );
-  const [quickFilterOptions, setQuickFilterOptions] = useState<Record<string, IDropdownOption[]>>({});
   const [searchKeyword, setSearchKeyword] = useState(() =>
     quickFiltersStorageKey
       ? (loadStoredQuickFilters(quickFiltersStorageKey)?.searchKeyword ?? "")
@@ -677,6 +676,18 @@ const App = ({ context, notificationPosition }: IProps) => {
             cardData[col.name] = getColumnValue(record, col);
           }
         }
+
+        // Vorberechneter, bereits lowercased Suchtext: nur formatierte Werte, KEINE
+        // Raw-Duplikate (Date/Zahl) und kein id/column. Vermeidet, dass die Suche pro
+        // Eingabe den Text jeder Karte neu zusammenbaut, und verhindert Fehltreffer auf
+        // Roh-Datumsstrings (z. B. "GMT", englische Monatsnamen).
+        const searchParts: string[] = [];
+        for (const key of Object.keys(cardData)) {
+          if (key === "id" || key === "column" || key.endsWith("Raw")) continue;
+          searchParts.push(getQuickFilterComparableValue(cardData[key]));
+        }
+        cardData.__search = searchParts.join(" ").toLowerCase();
+
         return cardData;
       });
     },
@@ -692,17 +703,17 @@ const App = ({ context, notificationPosition }: IProps) => {
     return filterRecords(activeView, quickFilterFieldsParsed);
   }, [filterRecords, activeView, quickFilterFieldsParsed, datasetRecordsKey]);
 
-  const handleViewChange = useCallback(() => {
-    if (activeView === undefined || activeView.columns === undefined) return;
-
-    const allCards: any[] = transformedCards;
-
+  // Dropdown-Wertelisten der Quick-Filter: haengen NUR von den transformierten Karten und
+  // der Filter-Konfiguration ab, nicht von Auswahl/Suche/Sortierung. Daher memoisiert (kein
+  // setState in handleViewChange) -> keine unnoetige Neuberechnung + kein zusaetzlicher
+  // Board-Re-Render/Reflow bei jeder Filter-/Sort-/Sucheingabe.
+  const quickFilterOptions = useMemo<Record<string, IDropdownOption[]>>(() => {
     const optionsByField: Record<string, IDropdownOption[]> = {};
     for (const cfg of quickFilterFieldsConfig) {
       if (cfg.isDateField || cfg.isNumberField) continue;
       const values = new Set<string>();
       let hasEmpty = false;
-      for (const card of allCards) {
+      for (const card of transformedCards) {
         const v = getQuickFilterComparableValue(card[cfg.key]);
         if (v === "") hasEmpty = true;
         else values.add(v);
@@ -716,7 +727,13 @@ const App = ({ context, notificationPosition }: IProps) => {
         ...valueOptions,
       ];
     }
-    setQuickFilterOptions(optionsByField);
+    return optionsByField;
+  }, [transformedCards, quickFilterFieldsConfig, strings]);
+
+  const handleViewChange = useCallback(() => {
+    if (activeView === undefined || activeView.columns === undefined) return;
+
+    const allCards: any[] = transformedCards;
 
     let filteredCards = allCards.filter((card: any) => {
       for (const cfg of quickFilterFieldsConfig) {
@@ -758,15 +775,9 @@ const App = ({ context, notificationPosition }: IProps) => {
 
     const searchTrimmed = searchKeyword.trim().toLowerCase();
     if (searchTrimmed) {
-      filteredCards = filteredCards.filter((card: any) => {
-        const parts: string[] = [];
-        for (const key of Object.keys(card)) {
-          if (key === "id" || key === "column") continue;
-          parts.push(getQuickFilterComparableValue(card[key]));
-        }
-        const searchableText = parts.join(" ").toLowerCase();
-        return searchableText.includes(searchTrimmed);
-      });
+      filteredCards = filteredCards.filter((card: any) =>
+        String(card.__search ?? "").includes(searchTrimmed)
+      );
     }
 
     let activeColumns = activeView?.columns ?? [];
@@ -819,7 +830,6 @@ const App = ({ context, notificationPosition }: IProps) => {
     searchKeyword,
     sortByField,
     sortDirection,
-    strings,
   ]);
 
   useEffect(() => {
