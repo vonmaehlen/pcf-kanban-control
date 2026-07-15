@@ -47,8 +47,13 @@ const Board = () => {
         columnName,
       };
 
-      await onDragEnd(result, record);
-      context.parameters.dataset.refresh();
+      const outcome = await onDragEnd(result, record);
+      // Nur neu laden, wenn onDragEnd es signalisiert (persistierter OptionSet-Wechsel
+      // oder BPF-Formular). Kein Refresh bei Reorder, Ablehnung oder Fehler; im BPF-Fall
+      // refresht onDragEnd nicht mehr selbst -> kein doppeltes dataset.refresh().
+      if (outcome?.shouldRefresh) {
+        context.parameters.dataset.refresh();
+      }
     } finally {
       setTimeout(() => {
         draggingRef.current = false;
