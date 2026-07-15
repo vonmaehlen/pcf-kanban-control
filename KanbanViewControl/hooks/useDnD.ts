@@ -102,20 +102,21 @@ export const useDnD = (columns: ColumnItem[]) => {
     }
   };
 
-  const onDragEnd = async (result: DropResult, record: any) => {
+  const onDragEnd = async (result: DropResult, record: any): Promise<{ shouldRefresh: boolean }> => {
     if (result.destination == null) {
-      return;
+      return { shouldRefresh: false };
     }
 
     if(activeView?.type === "BPF"){
+      // BPF: Stage wird im Formular geaendert (kein optimistischer Move). Das einmalige
+      // Neuladen uebernimmt der Aufrufer (Board) anhand von shouldRefresh -> kein doppeltes
+      // dataset.refresh() mehr.
       try {
         await openFormWithLoading(record.entityName, record.id)
       } catch (e: any) {
         toast.error(e.message);
-      } finally {
-        context.parameters.dataset.refresh();
       }
-      return;
+      return { shouldRefresh: true };
     }
 
     const itemId = result.draggableId;
@@ -129,9 +130,9 @@ export const useDnD = (columns: ColumnItem[]) => {
     const movedCards = moveCard(columns, sourceCard, result);
     setColumns(movedCards ?? []);
 
-    // Verschieben innerhalb derselben Spalte: nur Neuordnung, kein Speichern.
+    // Verschieben innerhalb derselben Spalte: nur Neuordnung, kein Speichern, kein Reload.
     if (sourceColumn?.id === destinationColumn?.id) {
-      return movedCards;
+      return { shouldRefresh: false };
     }
 
     const updateFieldName = Object.keys(record.update ?? {})[0];
@@ -156,7 +157,7 @@ export const useDnD = (columns: ColumnItem[]) => {
         toast.error(validation.message);
       }
       setColumns(columns); // Rollback auf den Ausgangszustand
-      return;
+      return { shouldRefresh: false };
     }
 
     const columnName = record.columnName ?? strings.toastUnallocated;
@@ -171,13 +172,18 @@ export const useDnD = (columns: ColumnItem[]) => {
 
     if (!response) {
       setColumns(columns); // Rollback: Karte zurück in die Ausgangsspalte
-    } else if (updateFieldName) {
+      return { shouldRefresh: false };
+    }
+
+    if (updateFieldName) {
       // Gruppierungsfeld auf der Karte auf den neuen Spaltenwert setzen
       // (bis dataset.refresh die serverseitige Wahrheit nachliefert).
       (sourceCard![updateFieldName] as CardInfo).value = destinationColumn?.title as string;
     }
 
-    return movedCards;
+    // Nur bei tatsaechlich persistiertem Spaltenwechsel neu laden (Server-Wahrheit /
+    // ggf. Plugin-Nebeneffekte). Der optimistische Move steht bereits.
+    return { shouldRefresh: true };
   };
 
   return { 
