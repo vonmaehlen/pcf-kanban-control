@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { IInputs } from '../generated/ManifestTypes';
 import { isNullOrEmpty, orderStages, chunkArray } from '../lib/utils';
 import { ViewEntity } from '../interfaces';
@@ -17,6 +17,13 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
     const { parameters, webAPI } = context;
     const { dataset } = parameters;
     const entityName = useMemo(() => parameters.dataset.getTargetEntityType(), [])
+
+    // Cache fuer die STATISCHEN OptionSet-/stringmap-/statuscode-Metadaten. Diese aendern
+    // sich waehrend einer Session praktisch nie, wurden aber bisher bei jedem
+    // handleColumnsChange (jede dataset.columns-Referenzaenderung, u.a. nach jedem
+    // dataset.refresh()) neu vom Server geholt. Gekeyed auf Entity + Sprache + Spalten.
+    // (BPF-Stages pro Record bleiben bewusst ungecacht - siehe getRecordCurrentStage.)
+    const optionSetsCacheRef = useRef<{ key: string; value: any } | null>(null);
 
     const xrmService = useMemo(() => {
         const service = XrmService.getInstance();
@@ -172,6 +179,11 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
                 return [];
             }
 
+            const cacheKey = `${entityLogicalName}|${context.userSettings.languageId}|${datasetColumns.map((c) => c.name).sort().join(',')}`;
+            if (optionSetsCacheRef.current && optionSetsCacheRef.current.key === cacheKey) {
+                return optionSetsCacheRef.current.value;
+            }
+
             const filter = datasetColumns.map((column) => `attributename eq '${column.name}'`).join(' or ');
 
             const columnOptions = await webAPI.retrieveMultipleRecords(
@@ -236,6 +248,7 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
                 columns: item.columns.sort((a: any, b: any) => a.order - b.order)
             }));
 
+            optionSetsCacheRef.current = { key: cacheKey, value: sortedColumns };
             return sortedColumns;
         } catch (e) {
             console.log(e)
