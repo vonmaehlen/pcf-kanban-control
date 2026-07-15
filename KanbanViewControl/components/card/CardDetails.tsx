@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { CardInfo, UniqueIdentifier } from "../../interfaces";
 import { Text } from "@fluentui/react/lib/Text";
 import { isEntityReference, isNullOrEmpty, isEmailColumnDataType, isPhoneColumnDataType } from "../../lib/utils";
@@ -86,9 +86,12 @@ const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml =
   const htmlSanitizeParams = context.parameters as HtmlSanitizeParams;
   const allowedTagsRaw = htmlSanitizeParams.allowedHtmlTagsOnCard?.raw;
   const allowedAttrsRaw = htmlSanitizeParams.allowedHtmlAttributesOnCard?.raw;
-  const sanitizedHtml = renderAsHtml && htmlContent
-    ? sanitizeHtml(htmlContent, allowedTagsRaw, allowedAttrsRaw)
-    : "";
+  // DOMPurify-Sanitisierung memoisieren: laeuft nur neu, wenn sich Inhalt oder erlaubte
+  // Tags/Attribute aendern, nicht bei jedem Re-Render des HTML-Feldes.
+  const sanitizedHtml = useMemo(
+    () => (renderAsHtml && htmlContent ? sanitizeHtml(htmlContent, allowedTagsRaw, allowedAttrsRaw) : ""),
+    [renderAsHtml, htmlContent, allowedTagsRaw, allowedAttrsRaw]
+  );
 
   useEffect(() => {
     if (!renderAsHtml || !htmlHostRef.current) return;

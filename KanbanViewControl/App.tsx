@@ -852,16 +852,18 @@ const App = ({ context, notificationPosition }: IProps) => {
       return;
     }
 
-    // Metadaten erst laden, wenn alle Seiten geladen sind. Sonst wird getOptionSets
-    // (stringmap-Abfrage) bei jeder Paging-Iteration ausgeführt und sofort verworfen.
-    const options = await getOptionSets(undefined);
-
+    // Metadaten erst laden, wenn alle Seiten geladen sind (sonst würde getOptionSets bei
+    // jeder Paging-Iteration ausgeführt und verworfen). OptionSets und BPF sind voneinander
+    // unabhängig -> parallel laden, damit die Latenz das Maximum statt die Summe beider ist.
     const disableBpf =
       (context.parameters as { disableBusinessProcessFlows?: { raw?: boolean } })
         .disableBusinessProcessFlows?.raw === true;
-    const process = disableBpf
-      ? []
-      : await getBusinessProcessFlows(dataset.getTargetEntityType(), recordIds);
+    const [options, process] = await Promise.all([
+      getOptionSets(undefined),
+      disableBpf
+        ? Promise.resolve([])
+        : getBusinessProcessFlows(dataset.getTargetEntityType(), recordIds),
+    ]);
     const allViews = [...(options ?? []), ...(process ?? [])];
 
     if (allViews === undefined) {
