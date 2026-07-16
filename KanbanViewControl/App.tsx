@@ -848,7 +848,15 @@ const App = ({ context, notificationPosition }: IProps) => {
       context.parameters.dataset.paging.hasNextPage == true &&
       recordIds.length < 2500
     ) {
-      context.parameters.dataset.paging.loadNextPage();
+      // Page-Size fuer das Nachladen hochsetzen: Das Board braucht ALLE Records
+      // client-seitig (Gruppierung/Filter/Sortierung/Suche). Die Standard-Page-Size ist
+      // durch die Dynamics-Einstellung "Datensaetze pro Seite" auf max. 250 gedeckelt und
+      // erzeugt sonst viele sequenzielle Roundtrips. So kommt der Rest in moeglichst
+      // wenigen Anfragen. setPageSize wird defensiv aufgerufen (nicht in jeder SDK-Version typisiert).
+      const paging = context.parameters.dataset.paging as
+        typeof context.parameters.dataset.paging & { setPageSize?: (pageSize: number) => void };
+      paging.setPageSize?.(2500);
+      paging.loadNextPage();
       return;
     }
 

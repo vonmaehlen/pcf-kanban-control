@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.24";
+export const CONTROL_VERSION = "1.7.25";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 23;
+export const BUILD_NUMBER = 24;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "R2-#8/#9: Metadaten-Fetches parallel (Promise.all) + sanitizeHtml memoisiert";
+export const BUILD_DESCRIPTION = "Paging: Page-Size beim Nachladen auf 2500 erhöht (weniger Roundtrips)";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
