@@ -730,13 +730,12 @@ const App = ({ context, notificationPosition }: IProps) => {
     return optionsByField;
   }, [transformedCards, quickFilterFieldsConfig, strings]);
 
-  const handleViewChange = useCallback(() => {
-    if (activeView === undefined || activeView.columns === undefined) return;
-
-    const allCards: any[] = transformedCards;
-
-    let filteredCards = allCards.filter((card: any) => {
+  // Prüft, ob eine Karte die Quick-Filter erfüllt. `exceptKey` blendet EIN Feld aus –
+  // für die facettierten Counts dieses Feldes, damit dessen eigene Auswahl nicht mitzählt.
+  const cardPassesQuickFilters = useCallback(
+    (card: any, exceptKey?: string) => {
       for (const cfg of quickFilterFieldsConfig) {
+        if (cfg.key === exceptKey) continue;
         const selected = quickFilterValues[cfg.key];
         if (cfg.isDateField) {
           const dateFilterVal = selected == null || Array.isArray(selected) ? null : selected;
@@ -771,14 +770,44 @@ const App = ({ context, notificationPosition }: IProps) => {
         }
       }
       return true;
-    });
+    },
+    [quickFilterFieldsConfig, quickFilterValues]
+  );
 
-    const searchTrimmed = searchKeyword.trim().toLowerCase();
-    if (searchTrimmed) {
-      filteredCards = filteredCards.filter((card: any) =>
-        String(card.__search ?? "").includes(searchTrimmed)
-      );
+  const searchTrimmedLower = searchKeyword.trim().toLowerCase();
+  const cardMatchesSearch = useCallback(
+    (card: any) => !searchTrimmedLower || String(card.__search ?? "").includes(searchTrimmedLower),
+    [searchTrimmedLower]
+  );
+
+  // Facettierte Counts: pro Quick-Filter-Wert die Anzahl der Karten, die übrig blieben,
+  // wenn dieser Wert zusätzlich zu den anderen aktiven Filtern + Suche gewählt würde.
+  // (Nur Nicht-Datum/Nicht-Zahl-Felder haben Wertelisten.)
+  const quickFilterCounts = useMemo<Record<string, Record<string, number>>>(() => {
+    const result: Record<string, Record<string, number>> = {};
+    for (const cfg of quickFilterFieldsConfig) {
+      if (cfg.isDateField || cfg.isNumberField) continue;
+      const counts: Record<string, number> = {};
+      for (const card of transformedCards) {
+        if (!cardPassesQuickFilters(card, cfg.key)) continue;
+        if (!cardMatchesSearch(card)) continue;
+        const v = getQuickFilterComparableValue(card[cfg.key]);
+        const key = v === "" ? QUICK_FILTER_EMPTY_KEY : v;
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
+      result[cfg.key] = counts;
     }
+    return result;
+  }, [transformedCards, quickFilterFieldsConfig, cardPassesQuickFilters, cardMatchesSearch]);
+
+  const handleViewChange = useCallback(() => {
+    if (activeView === undefined || activeView.columns === undefined) return;
+
+    const allCards: any[] = transformedCards;
+
+    const filteredCards = allCards.filter(
+      (card: any) => cardPassesQuickFilters(card) && cardMatchesSearch(card)
+    );
 
     let activeColumns = activeView?.columns ?? [];
     if (
@@ -825,9 +854,8 @@ const App = ({ context, notificationPosition }: IProps) => {
   }, [
     transformedCards,
     activeView,
-    quickFilterFieldsConfig,
-    quickFilterValues,
-    searchKeyword,
+    cardPassesQuickFilters,
+    cardMatchesSearch,
     sortByField,
     sortDirection,
   ]);
@@ -848,7 +876,15 @@ const App = ({ context, notificationPosition }: IProps) => {
       context.parameters.dataset.paging.hasNextPage == true &&
       recordIds.length < 2500
     ) {
-      context.parameters.dataset.paging.loadNextPage();
+      // Page-Size fuer das Nachladen hochsetzen: Das Board braucht ALLE Records
+      // client-seitig (Gruppierung/Filter/Sortierung/Suche). Die Standard-Page-Size ist
+      // durch die Dynamics-Einstellung "Datensaetze pro Seite" auf max. 250 gedeckelt und
+      // erzeugt sonst viele sequenzielle Roundtrips. So kommt der Rest in moeglichst
+      // wenigen Anfragen. setPageSize wird defensiv aufgerufen (nicht in jeder SDK-Version typisiert).
+      const paging = context.parameters.dataset.paging as
+        typeof context.parameters.dataset.paging & { setPageSize?: (pageSize: number) => void };
+      paging.setPageSize?.(2500);
+      paging.loadNextPage();
       return;
     }
 
@@ -967,6 +1003,7 @@ const App = ({ context, notificationPosition }: IProps) => {
         quickFilterValues,
         setQuickFilterValue,
         quickFilterOptions,
+        quickFilterCounts,
         searchKeyword,
         setSearchKeyword,
         sortFieldsConfig,
