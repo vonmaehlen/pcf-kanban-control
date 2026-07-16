@@ -84,6 +84,9 @@ interface IBoardContext {
   setQuickFilterValue: (field: string, value: string | string[] | null) => void,
   /** Quick filter: options per field (distinct values from data) */
   quickFilterOptions: Record<string, IDropdownOption[]>,
+  /** Quick filter: facetted counts per field -> per value key -> number of cards that would
+   *  remain if that value were selected on top of the other active filters + search. */
+  quickFilterCounts: Record<string, Record<string, number>>,
   /** Custom full-text search: search term for all card fields */
   searchKeyword: string,
   /** Set search term; empty string = no search */

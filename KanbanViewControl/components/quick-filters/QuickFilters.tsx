@@ -31,6 +31,7 @@ function renderFilterControl(
   quickFilterValues: Record<string, string | string[] | null>,
   setQuickFilterValue: (field: string, value: string | string[] | null) => void,
   strings: Strings,
+  counts: Record<string, number>,
   options?: { labelOverride?: string; dropdownWidth?: number }
 ) {
   const label = options?.labelOverride !== undefined ? options.labelOverride : cfg.text;
@@ -70,8 +71,15 @@ function renderFilterControl(
     { key: QUICK_FILTER_ALL_KEY, text: strings.quickFilterAll },
   ];
 
+  // Facettierte Anzahl je Wert ans Label anhaengen, z. B. "Aktiv (17)". "(Alle)" bleibt ohne Zahl.
+  const optionsWithCounts = rawOptions.map((o) =>
+    o.key === QUICK_FILTER_ALL_KEY
+      ? o
+      : { ...o, text: `${o.text} (${counts[String(o.key)] ?? 0})` }
+  );
+
   if (cfg.isMultiselect) {
-    const opts = rawOptions.filter((o) => o.key !== QUICK_FILTER_ALL_KEY);
+    const opts = optionsWithCounts.filter((o) => o.key !== QUICK_FILTER_ALL_KEY);
     const selectedKeys = Array.isArray(selectedValue)
       ? selectedValue
       : selectedValue
@@ -94,14 +102,14 @@ function renderFilterControl(
   }
 
   const selectedOption = selectedValue
-    ? rawOptions.find((o) => o.key === selectedValue) ?? rawOptions[0]
-    : rawOptions[0];
+    ? optionsWithCounts.find((o) => o.key === selectedValue) ?? optionsWithCounts[0]
+    : optionsWithCounts[0];
   return (
     <KanbanDropdown
       key={cfg.key}
       label={label}
       placeholder={strings.quickFilterAll}
-      options={rawOptions}
+      options={optionsWithCounts}
       selectedOption={selectedOption as IDropdownOption}
       onOptionSelected={(option) => {
         const key = option.key;
@@ -122,6 +130,7 @@ const QuickFilters = () => {
     quickFilterValues,
     setQuickFilterValue,
     quickFilterOptions,
+    quickFilterCounts,
     searchKeyword,
     setSearchKeyword,
     sortFieldsConfig,
@@ -226,7 +235,7 @@ const QuickFilters = () => {
             className="kanban-quick-filters-inline-item"
             style={i >= effectiveVisibleCount ? { visibility: "hidden", position: "absolute", pointerEvents: "none" } : undefined}
           >
-            {renderFilterControl(cfg, quickFilterOptions, quickFilterValues, setQuickFilterValue, strings)}
+            {renderFilterControl(cfg, quickFilterOptions, quickFilterValues, setQuickFilterValue, strings, quickFilterCounts[cfg.key] ?? {})}
           </div>
         ))}
       </div>
@@ -264,6 +273,7 @@ const QuickFilters = () => {
                           quickFilterValues,
                           setQuickFilterValue,
                           strings,
+                          quickFilterCounts[cfg.key] ?? {},
                           { labelOverride: "" }
                         )}
                       </div>
