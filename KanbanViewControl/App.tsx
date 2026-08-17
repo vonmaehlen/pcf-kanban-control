@@ -11,7 +11,7 @@ import { useCardConfig } from "./hooks/useCardConfig";
 import { CardConfigContext } from "./context/card-config-context";
 import { CardActionsContext } from "./context/card-actions-context";
 import { useNavigation } from "./hooks/useNavigation";
-import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, toComparableDate, toComparableNumber, isDateInFilterRange, isNumberInFilterRange, parseFieldDisplayNames } from "./lib/utils";
+import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, isOptionSetColumnDataType, toComparableDate, toComparableNumber, toOptionSetNumericIds, isDateInFilterRange, isNumberInFilterRange, isNumberFilterExpression, isOptionSetIdInNumberFilterRange, parseFieldDisplayNames } from "./lib/utils";
 import { unlocatedColumn } from "./lib/constants";
 import { getLocaleFromLanguageId, getStrings } from "./lib/strings";
 import { getClientUrl, loadWebResourceScript } from "./lib/load-validation-script";
@@ -22,6 +22,12 @@ import { CardInfo } from "./interfaces";
 const QUICK_FILTER_ALL_KEY = "__all__";
 const QUICK_FILTER_EMPTY_KEY = "__empty__";
 const QUICK_FILTERS_STORAGE_PREFIX = "pcf-kanban-quickfilters";
+/**
+ * Suffix des Kartenfelds mit der numerischen OptionSet-ID (z. B. "prioritycodeOptionIdRaw").
+ * Endet auf "Raw", damit der Wert – wie die uebrigen Rohwerte – nicht in den Suchtext und
+ * nicht in die Kartenanzeige gelangt.
+ */
+const OPTION_ID_SUFFIX = "OptionIdRaw";
 
 /**
  * Filter presets: JSON configuration via component property "Filter presets" (filterPresets).
@@ -405,8 +411,12 @@ const App = ({ context, notificationPosition }: IProps) => {
             // ignore
           }
         }
+        // OptionSet/Choice: erkennen wir ueber den dataType, damit die Wertelisten-UI
+        // erhalten bleibt (Rohwert von getValue ist eine Zahl und wuerde die
+        // Zahlenfeld-Heuristik unten sonst faelschlich ausloesen).
+        const isOptionSetField = isOptionSetColumnDataType(col.dataType);
         let isNumberField = isNumberColumnDataType(col.dataType);
-        if (!isNumberField && firstRecord) {
+        if (!isNumberField && !isOptionSetField && firstRecord) {
           try {
             const raw = firstRecord.getValue(col.name);
             isNumberField = typeof raw === "number" && !Number.isNaN(raw) && raw < 1000000000000;
@@ -424,6 +434,7 @@ const App = ({ context, notificationPosition }: IProps) => {
           ...(inPopup ? { inPopup: true as const } : {}),
           ...(isDateField ? { isDateField: true as const } : {}),
           ...(isNumberField ? { isNumberField: true as const } : {}),
+          ...(isOptionSetField ? { isOptionSetField: true as const } : {}),
         };
       })
       .filter((c): c is QuickFilterFieldConfig => c !== null);
@@ -693,8 +704,22 @@ const App = ({ context, notificationPosition }: IProps) => {
 
         for (const fieldName of quickFilterFieldsList) {
           const col = columnByName.get(fieldName);
-          if (col && !(col.name in cardData)) {
+          if (!col) continue;
+          if (!(col.name in cardData)) {
             cardData[col.name] = getColumnValue(record, col);
+          }
+          // OptionSet/Choice: numerische Option-ID(s) unter `${feld}OptionIdRaw` mitfuehren.
+          // Notwendig fuer numerische Filter (gt/lt/gte/lte/between), die sprachunabhaengig
+          // gegen die ID und nicht gegen das Label vergleichen. Eigener Schluessel (nicht
+          // `${feld}Raw`), damit Sortierung und Spaltensummen unveraendert bleiben; die
+          // "Raw"-Endung haelt den Wert aus Suchtext und Kartenanzeige heraus.
+          if (isOptionSetColumnDataType((col as { dataType?: string | number }).dataType)) {
+            const optionIds = toOptionSetNumericIds(record.getValue(col.name));
+            if (optionIds.length === 1) {
+              cardData[`${col.name}${OPTION_ID_SUFFIX}`] = optionIds[0];
+            } else if (optionIds.length > 1) {
+              cardData[`${col.name}${OPTION_ID_SUFFIX}`] = optionIds;
+            }
           }
         }
 
@@ -773,6 +798,31 @@ const App = ({ context, notificationPosition }: IProps) => {
           continue;
         }
         const cardVal = getQuickFilterComparableValue(card[cfg.key]);
+        // OptionSet/Choice mit numerischem Filterausdruck (z. B. "lte:2" aus einem
+        // Filter-Preset): sprachunabhaengig gegen die numerische Option-ID vergleichen,
+        // nie gegen das Label. Mischformen (["lte:2","Sonstiges"]) verknuepfen wie die
+        // Werteliste per ODER: ID-Treffer ODER Label-Treffer.
+        if (cfg.isOptionSetField) {
+          const selectedArr =
+            selected == null || selected === ""
+              ? []
+              : Array.isArray(selected)
+                ? selected
+                : [selected];
+          const numberExprs = selectedArr.filter(isNumberFilterExpression);
+          if (numberExprs.length > 0) {
+            const optionIdValue = card[`${cfg.key}${OPTION_ID_SUFFIX}`];
+            if (numberExprs.some((expr) => isOptionSetIdInNumberFilterRange(optionIdValue, expr))) {
+              continue;
+            }
+            const labelVals = selectedArr.filter((v) => !isNumberFilterExpression(v));
+            const labelMatch = labelVals.some((v) =>
+              v === QUICK_FILTER_EMPTY_KEY ? cardVal === "" : v === cardVal
+            );
+            if (!labelMatch) return false;
+            continue;
+          }
+        }
         if (cfg.isMultiselect) {
           const arr = Array.isArray(selected) ? selected : null;
           if (!arr || arr.length === 0) continue;

@@ -71,6 +71,7 @@ All configurable properties come from the Control Manifest. Invalid JSON in text
   - [Quick filter fields](#quick-filter-fields)
   - [Quick filter fields in popup](#quick-filter-fields-in-popup)
   - [Filter presets](#filter-presets)
+  - [Numeric filters on OptionSet fields](#numeric-filters-on-optionset-fields)
   - [Sort fields](#sort-fields)
 - [Notifications](#notifications)
   - [Notification Position](#notification-position)
@@ -683,7 +684,7 @@ Content from **HTML fields on card** is sanitized with [DOMPurify](https://githu
 
 **Type:** Text (JSON array or comma-separated)
 
-**Logical field names** to show as **quick filter dropdowns** above the board. All fields except Boolean are **multiselect**; Boolean remains single-select. **DateTime/DateOnly** get a **date filter UI**: (All), Today, Last 7 days, Last 30 days, Current calendar week, Current month, Current year, Next calendar week, Next month, Custom range. **Number/Currency** get a **number filter UI**: (All), Greater than, Less than, Greater/Less or equal, Between (min/max). Use the **exact column name** from the dataset. Only fields present in the dataset can be used. Invalid JSON is interpreted as comma-separated.
+**Logical field names** to show as **quick filter dropdowns** above the board. All fields except Boolean are **multiselect**; Boolean remains single-select. **DateTime/DateOnly** get a **date filter UI**: (All), Today, Last 7 days, Last 30 days, Current calendar week, Current month, Current year, Next calendar week, Next month, Custom range. **Number/Currency** get a **number filter UI**: (All), Greater than, Less than, Greater/Less or equal, Between (min/max). **OptionSet/Choice** fields (incl. Status, Status Reason, Multi-select Choice) keep the **value list** – numeric operators for these fields come from [filter presets](#numeric-filters-on-optionset-fields) and compare the numeric option value. Use the **exact column name** from the dataset. Only fields present in the dataset can be used. Invalid JSON is interpreted as comma-separated.
 
 **Example:**
 
@@ -713,6 +714,7 @@ Predefined filters shown as a dropdown next to sorting. Each preset: `{"id":"uni
 
 **Date fields:** `"today"`, `"last7"`, `"last30"`, `"currentMonth"`, `"currentYear"`, `"currentWeek"`, `"nextWeek"`, `"nextMonth"`, `"YYYY-MM-DD|YYYY-MM-DD"` or `{"start":"YYYY-MM-DD","end":"YYYY-MM-DD"}`.  
 **Number/currency fields:** `"gt:123"`, `"lt:456"`, `"gte:0"`, `"lte:10000"`, `"between:100|5000"`.  
+**OptionSet/Choice fields:** the same numeric operators are allowed and are compared against the **numeric option value (id)**, never against the displayed label – see [Numeric filters on OptionSet fields](#numeric-filters-on-optionset-fields).  
 **Current user:** `{{currentUser}}` e.g. for `ownerid` (replaced at runtime by the signed-in user's display name).
 
 **Example:**
@@ -731,6 +733,31 @@ Predefined filters shown as a dropdown next to sorting. Each preset: `{"id":"uni
 - **`{{currentUser}}`**: replaced by the signed-in user's display name (Dataverse systemuser.fullname), ideal for "My Opportunities" or "My cases".
 - Date fields: `"today"`, `"last7"`, `"last30"`, `"currentWeek"`, `"currentMonth"`, `"currentYear"`, `"nextWeek"`, `"nextMonth"` or range as above.
 - Number/currency: `"gt:123"`, `"lt:456"`, `"gte:0"`, `"lte:10000"`, `"between:100|5000"`.
+- OptionSet/Choice: same numeric operators, compared against the **numeric option value (id)** – see below.
+
+---
+
+### Numeric filters on OptionSet fields
+
+Numeric filter values (`"gt:"`, `"lt:"`, `"gte:"`, `"lte:"`, `"between:"`) may also be used for **OptionSet/Choice** fields (Choice, Status, Status Reason, Multi-select Choice). For these fields the comparison uses the **numeric option value (id)** from Dataverse – **never the displayed label**.
+
+Reason: labels are language-dependent (`stringmap`) and their alphabetical order is arbitrary; option values are stable and language-independent. So a preset filters identically in every user language.
+
+```json
+[
+  {"id":"prio-high","label":"High priority","filters":{"prioritycode":"lte:2"}},
+  {"id":"prio-range","label":"Priority 1–3","filters":{"prioritycode":"between:1|3"}}
+]
+```
+
+Rules:
+
+- **Comparison value** = numeric option value (e.g. `1` = High, `2` = Normal, `3` = Low), as maintained in the field's choice definition. Find the values under **Solution → Table → Column → Choice**.
+- **Multi-select Choice**: matches when **at least one** selected option value satisfies the condition.
+- **Empty field** (no choice set) **never** matches an active numeric filter.
+- **Mixing labels and operators** in one value is allowed and combined with **OR**, e.g. `{"prioritycode":["lte:2","Not set"]}` – matches option value ≤ 2 **or** the label `Not set`.
+- **UI**: OptionSet fields keep the normal **value list** (multiselect) as quick filter; the number filter UI (Greater than / Less than / Between) is only used for Number/Currency fields. An active numeric filter from a preset appears as an extra, selected entry in the value list (e.g. `≤ 2`) and can be cleared there.
+- **Boolean/Yes-No** fields are not OptionSets in this sense: they stay single-select on the label (`Yes`/`No`).
 
 ---
 

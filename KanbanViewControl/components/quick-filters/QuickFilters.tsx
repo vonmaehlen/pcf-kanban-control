@@ -11,7 +11,7 @@ import type { SortDirection } from "../../context/board-context";
 import type { QuickFilterFieldConfig } from "../../context/board-context";
 import { getStrings } from "../../lib/strings";
 import type { Strings } from "../../lib/strings";
-import { isQuickFilterActive, hasActiveFilters } from "../../lib/utils";
+import { isQuickFilterActive, hasActiveFilters, isNumberFilterExpression, parseNumberFilterValue } from "../../lib/utils";
 
 const QUICK_FILTER_ALL_KEY = "__all__";
 const SORT_NONE_KEY = "__sort_none__";
@@ -23,6 +23,21 @@ const INLINE_GAP_PX = 16;
 
 function sortOptionKey(fieldKey: string, direction: SortDirection): string {
   return `${fieldKey}${SORT_KEY_SEP}${direction}`;
+}
+
+/**
+ * Kurzform eines numerischen Filterausdrucks fuer die Anzeige in der Werteliste eines
+ * OptionSet-Filters (z. B. "lte:2" -> "≤ 2"). Bewusst rein symbolisch und damit sprachneutral.
+ */
+function formatNumberFilterExpression(value: string): string {
+  const parsed = parseNumberFilterValue(value);
+  if (!parsed) return value;
+  if (parsed.op === "gt") return `> ${parsed.num}`;
+  if (parsed.op === "lt") return `< ${parsed.num}`;
+  if (parsed.op === "gte") return `≥ ${parsed.num}`;
+  if (parsed.op === "lte") return `≤ ${parsed.num}`;
+  if (parsed.op === "between") return `${parsed.min} – ${parsed.max}`;
+  return value;
 }
 
 function renderFilterControl(
@@ -85,12 +100,26 @@ function renderFilterControl(
       : selectedValue
         ? [String(selectedValue)]
         : [];
+    // OptionSet mit numerischem Filterausdruck (typischerweise aus einem Filter-Preset,
+    // z. B. "lte:2"): Ausdruck als eigenen, ausgewaehlten Eintrag ergaenzen, damit der
+    // aktive Filter in der Werteliste sichtbar (und abwaehlbar) ist.
+    const numericSelected = cfg.isOptionSetField
+      ? selectedKeys.filter(
+          (k) => isNumberFilterExpression(k) && !opts.some((o) => String(o.key) === k)
+        )
+      : [];
+    const optsWithNumeric = numericSelected.length
+      ? [
+          ...numericSelected.map((k) => ({ key: k, text: formatNumberFilterExpression(k) })),
+          ...opts,
+        ]
+      : opts;
     return (
       <KanbanDropdown
         key={cfg.key}
         label={label}
         placeholder={strings.quickFilterAll}
-        options={opts}
+        options={optsWithNumeric}
         multiSelect
         selectedKeys={selectedKeys}
         onSelectionChange={(keys) => {

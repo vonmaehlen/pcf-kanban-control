@@ -58,6 +58,13 @@ Responsive filter bar above the board with inline dropdowns, a funnel button (ri
 - The funnel button shows a badge with the count of active hidden filters.
 - Layout: `[Inline filters...]  [Funnel ▼] [Preset ▼] [Sort ▼] [Search]`
 
+### Numeric filters on OptionSet fields
+
+- OptionSet/Choice columns (Picklist, Status, State, MultiSelectPicklist — detected via `isOptionSetColumnDataType`) keep the **value-list** quick filter UI; they are deliberately excluded from the number-field heuristic in `App.tsx` (`getValue` returns a number and would otherwise trigger the number filter UI).
+- A **numeric filter value** (`gt:`/`lt:`/`gte:`/`lte:`/`between:`, typically from a filter preset) on such a field is compared against the **numeric option id**, never against the localized label. Implementation: `filterRecords` stores the id(s) as `${field}OptionIdRaw` on the card (also for filter-only fields that are not rendered on the card), `cardPassesQuickFilters` compares via `isOptionSetIdInNumberFilterRange`.
+- Multiselect choices match if **any** id satisfies the condition; empty choices never match an active numeric filter. Labels and operators in one selection combine with **OR**.
+- The `OptionIdRaw` suffix ends in `Raw` on purpose: raw keys are excluded from the precomputed card search text and are not rendered on cards. Sorting/column sums keep using `${field}Raw` and are unaffected.
+
 ### Key Dependencies
 
 - `@hello-pangea/dnd` — Drag-and-drop (fork of react-beautiful-dnd)

@@ -19,6 +19,12 @@ export interface QuickFilterFieldConfig {
   isDateField?: boolean;
   /** true = numeric/currency field: use number filter UI (gt, lt, between) */
   isNumberField?: boolean;
+  /**
+   * true = OptionSet/Choice field (Picklist, Status, State, MultiSelect). Keeps the value-list
+   * filter UI; numeric filter values (gt/lt/gte/lte/between, e.g. from a filter preset) are
+   * compared against the numeric option id instead of the localized label.
+   */
+  isOptionSetField?: boolean;
 }
 
 export interface SortFieldConfig {

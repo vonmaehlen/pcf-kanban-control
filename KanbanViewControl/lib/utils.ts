@@ -75,6 +75,40 @@ export function isBooleanColumnDataType(dataType: string | undefined): boolean {
   return dataType != null && BOOLEAN_COLUMN_DATA_TYPES.includes(dataType);
 }
 
+/**
+ * PCF/Dataverse column data types for OptionSet/Choice fields (Picklist, Status, State,
+ * MultiSelect). Boolean/TwoOptions is intentionally NOT part of this list (see
+ * BOOLEAN_COLUMN_DATA_TYPES) – it stays a single-select quick filter.
+ */
+const OPTIONSET_COLUMN_DATA_TYPES = [
+  "OptionSet",
+  "Picklist",
+  "Status",
+  "State",
+  "MultiSelectPicklist",
+  "MultiSelectOptionSet",
+];
+
+/**
+ * True if the column dataType is an OptionSet/Choice (Picklist, Status, State, MultiSelect).
+ * Used to keep the value-list quick filter UI for choices and to compare numeric filters
+ * (gt/lt/gte/lte/between) against the numeric option id instead of the localized label.
+ */
+export function isOptionSetColumnDataType(dataType: string | number | undefined): boolean {
+  if (dataType == null) return false;
+  const normalized = String(dataType).trim().toLowerCase();
+  return (
+    OPTIONSET_COLUMN_DATA_TYPES.some((t) => t.toLowerCase() === normalized) ||
+    normalized === "choice" ||
+    normalized === "choices" ||
+    normalized.startsWith("optionset.") ||
+    normalized.startsWith("multiselectpicklist") ||
+    normalized.endsWith(".optionset") ||
+    normalized.endsWith(".picklist") ||
+    normalized.endsWith(".multiselectpicklist")
+  );
+}
+
 /** True if the column dataType is DateTime or DateOnly; use for date-specific quick filter UI. Accepts string or number (AttributeTypeCode 2 = DateTime). PCF/Dataverse uses "DateAndTime.DateAndTime" and "DateAndTime.DateOnly". */
 export function isDateColumnDataType(dataType: string | number | undefined): boolean {
   if (dataType == null) return false;
@@ -312,6 +346,47 @@ export function isNumberInFilterRange(recordNum: number | null, filterValue: Num
   if (parsed.op === "lte") return recordNum <= parsed.num;
   if (parsed.op === "between") return recordNum >= parsed.min && recordNum <= parsed.max;
   return true;
+}
+
+/** True if a quick filter value is a numeric filter expression ("gt:5", "between:1|3", ...). */
+export function isNumberFilterExpression(value: unknown): boolean {
+  return typeof value === "string" && parseNumberFilterValue(value) !== null;
+}
+
+/**
+ * Numeric OptionSet id(s) of a record value. Accepts a number (single choice),
+ * number[] (multiselect choice) and strings that consist of digits only (e.g. "100000001").
+ * Localized labels ("High", "Hoch") intentionally yield [] – they must never be
+ * compared numerically, otherwise "1st level" would be read as 1.
+ */
+export function toOptionSetNumericIds(value: unknown): number[] {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value.flatMap((v) => toOptionSetNumericIds(v));
+  if (typeof value === "number") return Number.isNaN(value) ? [] : [value];
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return /^-?\d+$/.test(trimmed) ? [Number(trimmed)] : [];
+  }
+  if (typeof value === "object" && "value" in (value as Record<string, unknown>)) {
+    return toOptionSetNumericIds((value as { value: unknown }).value);
+  }
+  return [];
+}
+
+/**
+ * Returns true if the record's OptionSet value satisfies a numeric filter
+ * (gt, lt, gte, lte, between). Comparison always uses the numeric option id, never the
+ * localized label. Multiselect choices match if ANY of their ids matches.
+ * Records without a numeric id (empty choice) never match an active numeric filter.
+ */
+export function isOptionSetIdInNumberFilterRange(
+    recordValue: unknown,
+    filterValue: NumberFilterValue
+): boolean {
+    if (parseNumberFilterValue(filterValue) === null) return true;
+    const ids = toOptionSetNumericIds(recordValue);
+    if (ids.length === 0) return false;
+    return ids.some((id) => isNumberInFilterRange(id, filterValue));
 }
 
 /** Returns the part before the last dot (linked-entity alias), or null if there is no dot. Use to inspect or distinguish columns that share the same attribute name (e.g. ownerid vs a_xxx.ownerid). */

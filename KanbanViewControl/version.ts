@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.27";
+export const CONTROL_VERSION = "1.7.28";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 26;
+export const BUILD_NUMBER = 27;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "Filter: Storage-Key je Entity+View + Standardfilter-Preset (default:true)";
+export const BUILD_DESCRIPTION = "Numerische Filter auf OptionSet vergleichen die Option-ID statt des Labels";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
