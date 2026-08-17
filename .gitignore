@@ -17,3 +17,6 @@
 *.binlog
 
 /.vscode
+
+# macOS
+.DS_Store
