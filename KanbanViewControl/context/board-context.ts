@@ -31,6 +31,8 @@ export interface FilterPresetConfig {
   id: string;
   label: string;
   filters: Record<string, string | string[]>;
+  /** When true, this preset is applied automatically on first load (no stored filter state yet). */
+  default?: boolean;
 }
 
 export type SortDirection = "asc" | "desc";

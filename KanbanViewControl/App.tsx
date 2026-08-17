@@ -164,10 +164,12 @@ interface IProps {
 }
 
 const App = ({ context, notificationPosition }: IProps) => {
-  // View ID for local storage scope: store quick filters per view separately
+  // Local-Storage-Scope: gespeicherte Quick-Filter je Entitaet UND View trennen, damit
+  // verschiedene Board-Instanzen unterschiedlicher Entitaeten ihre Filter nicht teilen.
   const viewId = (context.parameters?.dataset as { getViewId?: () => string })?.getViewId?.() ?? "";
+  const storageEntityType = (context.parameters?.dataset as { getTargetEntityType?: () => string })?.getTargetEntityType?.() ?? "";
   const quickFiltersStorageKey =
-    viewId ? `${QUICK_FILTERS_STORAGE_PREFIX}-${viewId}` : null;
+    viewId ? `${QUICK_FILTERS_STORAGE_PREFIX}-${storageEntityType}-${viewId}` : null;
 
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState<ViewItem | undefined>();
@@ -234,6 +236,12 @@ const App = ({ context, notificationPosition }: IProps) => {
   const prevViewIdRef = useRef<string | null>(null);
   const draggingRef = useRef(false);
   const openingRef = useRef(false);
+  // Ob beim ersten Laden bereits ein gespeicherter Filterzustand existierte. Nur wenn NICHT,
+  // wird ein als default markiertes Filter-Preset automatisch angewendet (Standardfilter).
+  const hadStoredFilterStateRef = useRef<boolean>(
+    quickFiltersStorageKey ? loadStoredQuickFilters(quickFiltersStorageKey) !== null : false
+  );
+  const appliedDefaultPresetRef = useRef(false);
 
   const cardMoveValidationFunctionName = useMemo(() => {
     const raw = (context.parameters as { cardMoveValidationFunction?: { raw?: string } }).cardMoveValidationFunction?.raw;
@@ -341,6 +349,7 @@ const App = ({ context, notificationPosition }: IProps) => {
         .map((e) => ({
           id: String(e.id).trim(),
           label: String(e.label),
+          ...((e as { default?: unknown }).default === true ? { default: true as const } : {}),
           filters: typeof e.filters === "object" && e.filters !== null && !Array.isArray(e.filters)
             ? Object.fromEntries(
                 Object.entries(e.filters).map(([k, v]) => {
@@ -492,6 +501,18 @@ const App = ({ context, notificationPosition }: IProps) => {
     },
     [filterPresetsConfig, quickFilterFieldsConfig, currentUserDisplayName]
   );
+
+  // Standardfilter: Ein mit "default": true markiertes Preset wird beim ersten Laden
+  // automatisch angewendet, sofern noch kein gespeicherter Filterzustand existierte.
+  // Danach hat der gespeicherte Zustand des Nutzers Vorrang. Der {{currentUser}}-Platzhalter
+  // wird ggf. vom bestehenden Re-Apply-Effekt ergänzt, sobald der Nutzername geladen ist.
+  useEffect(() => {
+    if (hadStoredFilterStateRef.current || appliedDefaultPresetRef.current) return;
+    const defaultPreset = filterPresetsConfig.find((p) => p.default);
+    if (!defaultPreset) return;
+    appliedDefaultPresetRef.current = true;
+    applyFilterPreset(defaultPreset.id);
+  }, [filterPresetsConfig, applyFilterPreset]);
 
   useEffect(() => {
     reportedConfigErrorsRef.current.clear();
