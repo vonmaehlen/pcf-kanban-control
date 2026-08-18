@@ -268,9 +268,10 @@ export function isDateInFilterRange(recordDate: Date | null, filterValue: DateFi
   return t >= range.start.getTime() && t <= range.end.getTime();
 }
 
-/** Number filter value: null | "gt:123" | "lt:456" | "gte:123" | "lte:456" | "between:min|max" */
+/** Number filter value: null | "eq:123" | "gt:123" | "lt:456" | "gte:123" | "lte:456" | "between:min|max" */
 export type NumberFilterValue = string | null;
 
+const NUM_PREFIX_EQ = "eq:";
 const NUM_PREFIX_GT = "gt:";
 const NUM_PREFIX_LT = "lt:";
 const NUM_PREFIX_GTE = "gte:";
@@ -280,9 +281,14 @@ const NUM_PREFIX_BETWEEN = "between:";
 /** Parse number filter value into operator and number(s). Returns null if no filter. */
 export function parseNumberFilterValue(
   value: NumberFilterValue
-): { op: "gt" | "lt" | "gte" | "lte"; num: number } | { op: "between"; min: number; max: number } | null {
+): { op: "eq" | "gt" | "lt" | "gte" | "lte"; num: number } | { op: "between"; min: number; max: number } | null {
   if (!value || value === "") return null;
   const trimmed = value.trim();
+  if (trimmed.startsWith(NUM_PREFIX_EQ)) {
+    const num = parseFloat(trimmed.slice(NUM_PREFIX_EQ.length));
+    if (Number.isNaN(num)) return null;
+    return { op: "eq", num };
+  }
   if (trimmed.startsWith(NUM_PREFIX_GT)) {
     const num = parseFloat(trimmed.slice(NUM_PREFIX_GT.length));
     if (Number.isNaN(num)) return null;
@@ -335,11 +341,12 @@ export function toComparableNumber(value: unknown): number | null {
   return null;
 }
 
-/** Returns true if the record number satisfies the number filter (gt, lt, gte, lte, between). */
+/** Returns true if the record number satisfies the number filter (eq, gt, lt, gte, lte, between). */
 export function isNumberInFilterRange(recordNum: number | null, filterValue: NumberFilterValue): boolean {
   const parsed = parseNumberFilterValue(filterValue);
   if (!parsed) return true;
   if (recordNum == null) return false;
+  if (parsed.op === "eq") return recordNum === parsed.num;
   if (parsed.op === "gt") return recordNum > parsed.num;
   if (parsed.op === "lt") return recordNum < parsed.num;
   if (parsed.op === "gte") return recordNum >= parsed.num;
@@ -375,7 +382,7 @@ export function toOptionSetNumericIds(value: unknown): number[] {
 
 /**
  * Returns true if the record's OptionSet value satisfies a numeric filter
- * (gt, lt, gte, lte, between). Comparison always uses the numeric option id, never the
+ * (eq, gt, lt, gte, lte, between). Comparison always uses the numeric option id, never the
  * localized label. Multiselect choices match if ANY of their ids matches.
  * Records without a numeric id (empty choice) never match an active numeric filter.
  */

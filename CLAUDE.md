@@ -61,8 +61,10 @@ Responsive filter bar above the board with inline dropdowns, a funnel button (ri
 ### Numeric filters on OptionSet fields
 
 - OptionSet/Choice columns (Picklist, Status, State, MultiSelectPicklist — detected via `isOptionSetColumnDataType`) keep the **value-list** quick filter UI; they are deliberately excluded from the number-field heuristic in `App.tsx` (`getValue` returns a number and would otherwise trigger the number filter UI).
-- A **numeric filter value** (`gt:`/`lt:`/`gte:`/`lte:`/`between:`, typically from a filter preset) on such a field is compared against the **numeric option id**, never against the localized label. Implementation: `filterRecords` stores the id(s) as `${field}OptionIdRaw` on the card (also for filter-only fields that are not rendered on the card), `cardPassesQuickFilters` compares via `isOptionSetIdInNumberFilterRange`.
+- A **numeric filter value** (`eq:`/`gt:`/`lt:`/`gte:`/`lte:`/`between:`, typically from a filter preset) on such a field is compared against the **numeric option id**, never against the localized label. Implementation: `filterRecords` stores the id(s) as `${field}OptionIdRaw` on the card (also for filter-only fields that are not rendered on the card), `cardPassesQuickFilters` compares via `isOptionSetIdInNumberFilterRange`.
 - Multiselect choices match if **any** id satisfies the condition; empty choices never match an active numeric filter. Labels and operators in one selection combine with **OR**.
+- Equality is `eq:` (e.g. `{"statecode":"eq:0"}` for active records). `eq:` is a full number-filter operator: it is parsed in `parseNumberFilterValue`, evaluated in `isNumberInFilterRange` and offered as "Equals"/"Gleich" in the `NumberFilter` UI for Number/Currency fields.
+- Empty display names from `fieldDisplayNamesOnCard` (and the hide-label config) apply to the **card only** — `quickFilterFieldsConfig` and `sortFieldsConfig` fall back to the column display name so filter and sort dropdowns are never unlabeled.
 - The `OptionIdRaw` suffix ends in `Raw` on purpose: raw keys are excluded from the precomputed card search text and are not rendered on cards. Sorting/column sums keep using `${field}Raw` and are unaffected.
 
 ### Key Dependencies

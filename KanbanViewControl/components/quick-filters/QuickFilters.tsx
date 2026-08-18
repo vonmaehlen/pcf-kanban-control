@@ -27,11 +27,12 @@ function sortOptionKey(fieldKey: string, direction: SortDirection): string {
 
 /**
  * Kurzform eines numerischen Filterausdrucks fuer die Anzeige in der Werteliste eines
- * OptionSet-Filters (z. B. "lte:2" -> "≤ 2"). Bewusst rein symbolisch und damit sprachneutral.
+ * OptionSet-Filters (z. B. "eq:0" -> "= 0"). Bewusst rein symbolisch und damit sprachneutral.
  */
 function formatNumberFilterExpression(value: string): string {
   const parsed = parseNumberFilterValue(value);
   if (!parsed) return value;
+  if (parsed.op === "eq") return `= ${parsed.num}`;
   if (parsed.op === "gt") return `> ${parsed.num}`;
   if (parsed.op === "lt") return `< ${parsed.num}`;
   if (parsed.op === "gte") return `≥ ${parsed.num}`;

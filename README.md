@@ -15,7 +15,7 @@ This **PowerApps Component Framework (PCF)** control enables users to visualize 
 - Lookup column support (including Persona-style display).
 - **Quick filter** dropdowns and **custom sort** fields (configurable).
 - **Date/time quick filters**: For DateTime and DateOnly fields, special filter options (Today, Last 7 days, Last 30 days, Custom range) with Fluent UI DatePicker.
-- **Number/currency quick filters**: For numeric and currency fields, filter by Greater than, Less than, Greater/Less or equal, Between (min/max) with Fluent UI.
+- **Number/currency quick filters**: For numeric and currency fields, filter by Equals, Greater than, Less than, Greater/Less or equal, Between (min/max) with Fluent UI.
 - Toast notifications for value updates.
 - **Internationalization**: The control adapts to the app language (user's language setting); UI strings are localized (e.g. English, German).
 
@@ -684,7 +684,7 @@ Content from **HTML fields on card** is sanitized with [DOMPurify](https://githu
 
 **Type:** Text (JSON array or comma-separated)
 
-**Logical field names** to show as **quick filter dropdowns** above the board. All fields except Boolean are **multiselect**; Boolean remains single-select. **DateTime/DateOnly** get a **date filter UI**: (All), Today, Last 7 days, Last 30 days, Current calendar week, Current month, Current year, Next calendar week, Next month, Custom range. **Number/Currency** get a **number filter UI**: (All), Greater than, Less than, Greater/Less or equal, Between (min/max). **OptionSet/Choice** fields (incl. Status, Status Reason, Multi-select Choice) keep the **value list** – numeric operators for these fields come from [filter presets](#numeric-filters-on-optionset-fields) and compare the numeric option value. Use the **exact column name** from the dataset. Only fields present in the dataset can be used. Invalid JSON is interpreted as comma-separated.
+**Logical field names** to show as **quick filter dropdowns** above the board. All fields except Boolean are **multiselect**; Boolean remains single-select. **DateTime/DateOnly** get a **date filter UI**: (All), Today, Last 7 days, Last 30 days, Current calendar week, Current month, Current year, Next calendar week, Next month, Custom range. **Number/Currency** get a **number filter UI**: (All), Equals, Greater than, Less than, Greater/Less or equal, Between (min/max). **OptionSet/Choice** fields (incl. Status, Status Reason, Multi-select Choice) keep the **value list** – numeric operators for these fields come from [filter presets](#numeric-filters-on-optionset-fields) and compare the numeric option value. Use the **exact column name** from the dataset. Only fields present in the dataset can be used. Invalid JSON is interpreted as comma-separated.
 
 **Example:**
 
@@ -713,7 +713,7 @@ Or comma-separated.
 Predefined filters shown as a dropdown next to sorting. Each preset: `{"id":"unique-id","label":"Display name","filters":{"fieldLogicalName":"filterValue"}}`. For **multiselect** use an array as value; for Boolean use a single value. **The filter preset dropdown is only shown when this property is set.**
 
 **Date fields:** `"today"`, `"last7"`, `"last30"`, `"currentMonth"`, `"currentYear"`, `"currentWeek"`, `"nextWeek"`, `"nextMonth"`, `"YYYY-MM-DD|YYYY-MM-DD"` or `{"start":"YYYY-MM-DD","end":"YYYY-MM-DD"}`.  
-**Number/currency fields:** `"gt:123"`, `"lt:456"`, `"gte:0"`, `"lte:10000"`, `"between:100|5000"`.  
+**Number/currency fields:** `"eq:123"`, `"gt:123"`, `"lt:456"`, `"gte:0"`, `"lte:10000"`, `"between:100|5000"`.  
 **OptionSet/Choice fields:** the same numeric operators are allowed and are compared against the **numeric option value (id)**, never against the displayed label – see [Numeric filters on OptionSet fields](#numeric-filters-on-optionset-fields).  
 **Current user:** `{{currentUser}}` e.g. for `ownerid` (replaced at runtime by the signed-in user's display name).
 
@@ -732,19 +732,20 @@ Predefined filters shown as a dropdown next to sorting. Each preset: `{"id":"uni
 - `filters`: logical field name → single value (Boolean/single-select) or **array of values** (multiselect).
 - **`{{currentUser}}`**: replaced by the signed-in user's display name (Dataverse systemuser.fullname), ideal for "My Opportunities" or "My cases".
 - Date fields: `"today"`, `"last7"`, `"last30"`, `"currentWeek"`, `"currentMonth"`, `"currentYear"`, `"nextWeek"`, `"nextMonth"` or range as above.
-- Number/currency: `"gt:123"`, `"lt:456"`, `"gte:0"`, `"lte:10000"`, `"between:100|5000"`.
+- Number/currency: `"eq:123"`, `"gt:123"`, `"lt:456"`, `"gte:0"`, `"lte:10000"`, `"between:100|5000"`.
 - OptionSet/Choice: same numeric operators, compared against the **numeric option value (id)** – see below.
 
 ---
 
 ### Numeric filters on OptionSet fields
 
-Numeric filter values (`"gt:"`, `"lt:"`, `"gte:"`, `"lte:"`, `"between:"`) may also be used for **OptionSet/Choice** fields (Choice, Status, Status Reason, Multi-select Choice). For these fields the comparison uses the **numeric option value (id)** from Dataverse – **never the displayed label**.
+Numeric filter values (`"eq:"`, `"gt:"`, `"lt:"`, `"gte:"`, `"lte:"`, `"between:"`) may also be used for **OptionSet/Choice** fields (Choice, Status, Status Reason, Multi-select Choice). For these fields the comparison uses the **numeric option value (id)** from Dataverse – **never the displayed label**.
 
 Reason: labels are language-dependent (`stringmap`) and their alphabetical order is arbitrary; option values are stable and language-independent. So a preset filters identically in every user language.
 
 ```json
 [
+  {"id":"active","label":"Active","filters":{"statecode":"eq:0"}},
   {"id":"prio-high","label":"High priority","filters":{"prioritycode":"lte:2"}},
   {"id":"prio-range","label":"Priority 1–3","filters":{"prioritycode":"between:1|3"}}
 ]
@@ -752,7 +753,8 @@ Reason: labels are language-dependent (`stringmap`) and their alphabetical order
 
 Rules:
 
-- **Comparison value** = numeric option value (e.g. `1` = High, `2` = Normal, `3` = Low), as maintained in the field's choice definition. Find the values under **Solution → Table → Column → Choice**.
+- **Comparison value** = numeric option value (e.g. `statecode` `0` = Active, `1` = Inactive; `prioritycode` `1` = High, `2` = Normal, `3` = Low), as maintained in the field's choice definition. Find the values under **Solution → Table → Column → Choice**.
+- **Equality** uses `"eq:"` – e.g. `{"statecode":"eq:0"}` for active records only. There is no `"ne:"` operator; use the value list or a range instead.
 - **Multi-select Choice**: matches when **at least one** selected option value satisfies the condition.
 - **Empty field** (no choice set) **never** matches an active numeric filter.
 - **Mixing labels and operators** in one value is allowed and combined with **OR**, e.g. `{"prioritycode":["lte:2","Not set"]}` – matches option value ≤ 2 **or** the label `Not set`.

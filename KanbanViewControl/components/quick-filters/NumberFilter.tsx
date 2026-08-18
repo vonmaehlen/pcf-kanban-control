@@ -9,12 +9,14 @@ import { BoardContext } from "../../context/board-context";
 import { getStrings } from "../../lib/strings";
 
 const NUM_FILTER_ALL_KEY = "__all__";
+const NUM_FILTER_EQ = "eq";
 const NUM_FILTER_GT = "gt";
 const NUM_FILTER_LT = "lt";
 const NUM_FILTER_GTE = "gte";
 const NUM_FILTER_LTE = "lte";
 const NUM_FILTER_BETWEEN = "between";
 
+const PREFIX_EQ = "eq:";
 const PREFIX_GT = "gt:";
 const PREFIX_LT = "lt:";
 const PREFIX_GTE = "gte:";
@@ -23,6 +25,7 @@ const PREFIX_BETWEEN = "between:";
 
 function getMode(value: string | null): string {
   if (!value || value === "") return NUM_FILTER_ALL_KEY;
+  if (value.startsWith(PREFIX_EQ)) return NUM_FILTER_EQ;
   if (value.startsWith(PREFIX_GT)) return NUM_FILTER_GT;
   if (value.startsWith(PREFIX_LT)) return NUM_FILTER_LT;
   if (value.startsWith(PREFIX_GTE)) return NUM_FILTER_GTE;
@@ -49,6 +52,7 @@ function formatNumForDisplay(n: number, locale: string): string {
 function getNumberFilterOptionsBase(strings: ReturnType<typeof getStrings>): IDropdownOption[] {
   return [
     { key: NUM_FILTER_ALL_KEY, text: strings.numberFilterAll },
+    { key: NUM_FILTER_EQ, text: strings.numberFilterEquals },
     { key: NUM_FILTER_GT, text: strings.numberFilterGreaterThan },
     { key: NUM_FILTER_LT, text: strings.numberFilterLessThan },
     { key: NUM_FILTER_GTE, text: strings.numberFilterGreaterOrEqual },
@@ -98,6 +102,7 @@ const NumberFilter: React.FC<NumberFilterProps> = ({
     const p = parseNumberFilterValue(value);
     return numberFilterOptionsBase.map((opt) => {
       if (!p) return opt;
+      if (opt.key === NUM_FILTER_EQ && p.op === "eq") return { ...opt, text: `= ${formatNumForDisplay(p.num, locale)}` };
       if (opt.key === NUM_FILTER_GT && p.op === "gt") return { ...opt, text: `${strings.numberFilterGreaterThan} ${formatNumForDisplay(p.num, locale)}` };
       if (opt.key === NUM_FILTER_LT && p.op === "lt") return { ...opt, text: `${strings.numberFilterLessThan} ${formatNumForDisplay(p.num, locale)}` };
       if (opt.key === NUM_FILTER_GTE && p.op === "gte") return { ...opt, text: `≥ ${formatNumForDisplay(p.num, locale)}` };
@@ -128,7 +133,8 @@ const NumberFilter: React.FC<NumberFilterProps> = ({
       onChange(null);
       return;
     }
-    const prefix = op === "gt" ? PREFIX_GT : op === "lt" ? PREFIX_LT : op === "gte" ? PREFIX_GTE : PREFIX_LTE;
+    const prefix =
+      op === "eq" ? PREFIX_EQ : op === "gt" ? PREFIX_GT : op === "lt" ? PREFIX_LT : op === "gte" ? PREFIX_GTE : PREFIX_LTE;
     onChange(prefix + n);
   };
 
@@ -158,13 +164,15 @@ const NumberFilter: React.FC<NumberFilterProps> = ({
       return;
     }
     const single = singleVal === "" ? "0" : singleVal;
-    if (key === NUM_FILTER_GT) applySingle("gt", single);
+    if (key === NUM_FILTER_EQ) applySingle("eq", single);
+    else if (key === NUM_FILTER_GT) applySingle("gt", single);
     else if (key === NUM_FILTER_LT) applySingle("lt", single);
     else if (key === NUM_FILTER_GTE) applySingle("gte", single);
     else if (key === NUM_FILTER_LTE) applySingle("lte", single);
   };
 
   const showDetails =
+    mode === NUM_FILTER_EQ ||
     mode === NUM_FILTER_GT ||
     mode === NUM_FILTER_LT ||
     mode === NUM_FILTER_GTE ||
@@ -201,7 +209,8 @@ const NumberFilter: React.FC<NumberFilterProps> = ({
           setInitialFocus
         >
           <div className="kanban-number-filter-callout-content">
-            {(mode === NUM_FILTER_GT ||
+            {(mode === NUM_FILTER_EQ ||
+              mode === NUM_FILTER_GT ||
               mode === NUM_FILTER_LT ||
               mode === NUM_FILTER_GTE ||
               mode === NUM_FILTER_LTE) && (
@@ -215,7 +224,9 @@ const NumberFilter: React.FC<NumberFilterProps> = ({
                       const n = parseFloat(newValue);
                       if (!Number.isNaN(n)) {
                         const op =
-                          mode === NUM_FILTER_GT
+                          mode === NUM_FILTER_EQ
+                            ? "eq"
+                            : mode === NUM_FILTER_GT
                             ? "gt"
                             : mode === NUM_FILTER_LT
                               ? "lt"

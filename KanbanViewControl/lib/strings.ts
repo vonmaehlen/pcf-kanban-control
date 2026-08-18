@@ -22,6 +22,7 @@ export interface Strings {
 
   // Number filter
   numberFilterAll: string;
+  numberFilterEquals: string;
   numberFilterGreaterThan: string;
   numberFilterLessThan: string;
   numberFilterGreaterOrEqual: string;
@@ -99,6 +100,7 @@ const en: Strings = {
   dateFilterEndAria: "Select end date",
 
   numberFilterAll: "(All)",
+  numberFilterEquals: "Equals",
   numberFilterGreaterThan: "Greater than",
   numberFilterLessThan: "Less than",
   numberFilterGreaterOrEqual: "Greater or equal",
@@ -168,6 +170,7 @@ const de: Strings = {
   dateFilterEndAria: "Enddatum auswählen",
 
   numberFilterAll: "(Alle)",
+  numberFilterEquals: "Gleich",
   numberFilterGreaterThan: "Größer als",
   numberFilterLessThan: "Kleiner als",
   numberFilterGreaterOrEqual: "Größer oder gleich",

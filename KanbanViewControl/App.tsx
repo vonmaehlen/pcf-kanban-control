@@ -400,8 +400,15 @@ const App = ({ context, notificationPosition }: IProps) => {
       .map((name): QuickFilterFieldConfig | null => {
         const col = colWithType.find((c) => c.name === name);
         if (!col) return null;
+        // "Label ausblenden" wirkt ausschliesslich auf der Karte: ein leerer Anzeigename
+        // (bzw. hideLabelForFieldsOnCard) darf die Beschriftung des Quick-Filters nicht
+        // loeschen, sonst steht ein unbenanntes Dropdown in der Filterleiste. Nicht-leere
+        // Umbenennungen aus fieldDisplayNamesOnCard gelten weiterhin auch hier.
+        const displayNameOverride = fieldDisplayNamesOnCardMap.get(col.name);
         const displayName =
-          fieldDisplayNamesOnCardMap.get(col.name) ?? col.displayName ?? col.name;
+          displayNameOverride != null && displayNameOverride.trim() !== ""
+            ? displayNameOverride
+            : (col.displayName ?? col.name);
         let isDateField = isDateColumnDataType(col.dataType);
         if (!isDateField && firstRecord) {
           try {
@@ -447,8 +454,13 @@ const App = ({ context, notificationPosition }: IProps) => {
       .map((name) => {
         const col = dataset.columns.find((c) => c.name === name);
         if (!col) return null;
+        // Wie beim Quick-Filter: leerer Anzeigename gilt nur fuer die Karte, damit im
+        // Sortier-Dropdown kein namenloser Eintrag entsteht.
+        const displayNameOverride = fieldDisplayNamesOnCardMap.get(col.name);
         const displayName =
-          fieldDisplayNamesOnCardMap.get(col.name) ?? col.displayName ?? col.name;
+          displayNameOverride != null && displayNameOverride.trim() !== ""
+            ? displayNameOverride
+            : (col.displayName ?? col.name);
         return { key: col.name, text: displayName };
       })
       .filter((c): c is SortFieldConfig => c !== null);
