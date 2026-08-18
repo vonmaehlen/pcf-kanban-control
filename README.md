@@ -13,6 +13,7 @@ This **PowerApps Component Framework (PCF)** control enables users to visualize 
 - Drag-and-drop functionality.
 - **Progressive loading**: Only a configurable number of cards per column are shown initially; more load when scrolling down (reduces DOM size and improves performance).
 - Lookup column support (including Persona-style display).
+- **Card background colors**: Color the whole card by a field value; Choice/Status/Yes-No columns are matched by their **numeric option id**, so the colors survive translations.
 - **Quick filter** dropdowns and **custom sort** fields (configurable).
 - **Date/time quick filters**: For DateTime and DateOnly fields, special filter options (Today, Last 7 days, Last 30 days, Custom range) with Fluent UI DatePicker.
 - **Number/currency quick filters**: For numeric and currency fields, filter by Equals, Greater than, Less than, Greater/Less or equal, Between (min/max) with Fluent UI.
@@ -59,6 +60,7 @@ All configurable properties come from the Control Manifest. Invalid JSON in text
   - [Hide label for fields on card](#hide-label-for-fields-on-card)
   - [Field display names on card](#field-display-names-on-card)
   - [Field highlights](#field-highlights)
+  - [Card background colors](#card-background-colors)
   - [Field widths on card](#field-widths-on-card)
   - [Lookup fields as Persona on card](#lookup-fields-as-persona-on-card)
   - [Lookup Persona icon only on card](#lookup-persona-icon-only-on-card)
@@ -551,6 +553,40 @@ Highlight fields when a value is set. Each item: `logicalName`, `color` (e.g. `#
 ```
 
 Supported colors: hex (`#ff0000`), RGB or CSS color names.
+
+---
+
+### Card background colors
+
+**Type:** Text (JSON array)
+
+Colors the **whole card background** based on a field value. Each rule has `logicalName`, `color` and exactly one condition:
+
+- **`optionValue`** – the **numeric option id** of a **Choice / Status / Status Reason / Yes-No** column. Yes-No uses `1` = Yes, `0` = No. An array matches several options, e.g. `[2,3]`. **Preferred**, because option ids are language-independent: the colors keep working in every user language and after label translations.
+- **`value`** – text comparison (case-insensitive) against the **displayed value**. For field types that have no option id (text, lookup, …). Note that this is language-dependent for translated values.
+
+The **first matching rule wins**, so put more specific rules first. Cards without a match keep the default white background.
+
+**Example:**
+
+```json
+[
+  {"logicalName":"prioritycode","optionValue":1,"color":"#FDE7E9"},
+  {"logicalName":"prioritycode","optionValue":[2,3],"color":"#FFF4CE"},
+  {"logicalName":"statecode","optionValue":1,"color":"#F3F2F1"},
+  {"logicalName":"donotemail","optionValue":1,"color":"#EFF6FC"},
+  {"logicalName":"industrycode","value":"Retail","color":"#E1F5E1"}
+]
+```
+
+Notes:
+
+- **Where to find the option ids:** **Solution → Table → Column → Choice** (e.g. `statecode` `0` = Active, `1` = Inactive; `prioritycode` `1` = High, `2` = Normal, `3` = Low).
+- The field does **not** have to be visible on the card – you can color by `statecode` without showing it (it only has to be part of the view).
+- **Multi-select Choice** matches when at least one selected option id is configured.
+- **Use light colors.** The card text stays dark; there is no automatic contrast adjustment. Fluent-style pastels work well: `#FDE7E9` (red), `#FFF4CE` (yellow), `#DFF6DD` (green), `#EFF6FC` (blue), `#F3F2F1` (grey).
+- Combines with [Field highlights](#field-highlights) (border/corner marks) – background and highlights are independent.
+- Hover still darkens the card slightly, whatever the configured color.
 
 ---
 

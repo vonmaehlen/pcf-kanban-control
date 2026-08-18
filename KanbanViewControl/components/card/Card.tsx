@@ -11,6 +11,8 @@ import { CardConfigContext } from "../../context/card-config-context";
 import { getStrings } from "../../lib/strings";
 import { useContext } from "react";
 import { Spinner, SpinnerSize } from "@fluentui/react";
+import { optionIdMatches } from "../../lib/utils";
+import { OPTION_ID_SUFFIX } from "../../lib/constants";
 
 interface IProps {
   item: CardItem;
@@ -51,6 +53,17 @@ function hasValue(value: unknown): boolean {
   return true;
 }
 
+/** Comparable text of a card field (unwraps CardInfo, lookups by name), trimmed + lowercased. */
+function getComparableText(field: unknown): string {
+  if (field == null) return "";
+  const value = typeof field === "object" && "value" in field ? (field as CardInfo).value : field;
+  if (value == null) return "";
+  if (typeof value === "object" && "name" in value) {
+    return String((value as { name?: string }).name ?? "").trim().toLowerCase();
+  }
+  return String(value).trim().toLowerCase();
+}
+
 /** Max mouse movement (px) below which an event still counts as a click. Above = text selection/drag, card does not open. */
 const CLICK_MOVE_THRESHOLD_PX = 5;
 
@@ -76,6 +89,7 @@ const Card = ({ item, draggable = true }: IProps) => {
     htmlFieldsOnCardSet,
     hideLabelForFieldsOnCardSet,
     booleanFieldHighlights,
+    cardBackgroundColors,
     fieldWidthsOnCardMap,
     lookupFieldsAsPersonaOnCardSet,
     lookupFieldsPersonaIconOnlyOnCardSet,
@@ -144,6 +158,27 @@ const Card = ({ item, draggable = true }: IProps) => {
     return result;
   }, [item, booleanFieldHighlights]);
 
+  // Kartenhintergrund nach Feldwert: erste zutreffende Regel gewinnt. `optionValue` vergleicht
+  // die numerische Option-ID (sprachunabhaengig, siehe `${feld}OptionIdRaw` aus filterRecords),
+  // `value` den formatierten Textwert (case-insensitiv) fuer Nicht-Choice-Felder.
+  const backgroundColor = useMemo(() => {
+    for (const rule of cardBackgroundColors) {
+      // Kein Vorab-Check auf `rule.logicalName in item`: die Option-ID liegt auch fuer
+      // Spalten vor, die nicht auf der Karte angezeigt werden (z. B. Einfaerben nach
+      // statecode ohne das Feld auszugeben). Fehlende Werte treffen einfach nicht.
+      if (rule.optionValue != null) {
+        if (optionIdMatches(item[`${rule.logicalName}${OPTION_ID_SUFFIX}`], rule.optionValue)) {
+          return rule.color;
+        }
+        continue;
+      }
+      if (rule.value != null && getComparableText(item[rule.logicalName]) === rule.value.trim().toLowerCase()) {
+        return rule.color;
+      }
+    }
+    return undefined;
+  }, [item, cardBackgroundColors]);
+
   const columnFieldKey = activeView?.key;
 
   const currentStageName = useMemo(() => {
@@ -174,6 +209,9 @@ const Card = ({ item, draggable = true }: IProps) => {
     (highlights.cornerBottomRight ? " card-container--highlight-corner-bottom-right" : "") +
     (highlights.cornerTopLeft ? " card-container--highlight-corner-top-left" : "") +
     (highlights.cornerBottomLeft ? " card-container--highlight-corner-bottom-left" : "");
+  // Hintergrundfarbe als CSS-Variable, nicht als background-color: so bleibt der Hover-Effekt
+  // (Overlay in .card-container--custom-bg:hover) erhalten, statt vom Inline-Style ueberschrieben.
+  const backgroundStyle = backgroundColor ? { ["--card-bg" as string]: backgroundColor } : undefined;
   const highlightStyle = hasAnyHighlight
     ? {
         ...(highlights.left && { ["--card-highlight-left" as string]: highlights.left }),
@@ -184,16 +222,18 @@ const Card = ({ item, draggable = true }: IProps) => {
         ...(highlights.cornerBottomLeft && { ["--card-highlight-corner-bottom-left" as string]: highlights.cornerBottomLeft }),
       }
     : undefined;
+  const containerStyle =
+    backgroundStyle || highlightStyle ? { ...backgroundStyle, ...highlightStyle } : undefined;
 
   return (
     <div
-      className={`card-container${draggable ? "" : " no-drag"}${highlightClass}`}
+      className={`card-container${draggable ? "" : " no-drag"}${highlightClass}${backgroundColor ? " card-container--custom-bg" : ""}`}
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
       onMouseDown={isClickable ? onMouseDown : undefined}
       onClick={isClickable ? onCardClickWithMoveCheck : undefined}
       onKeyDown={isClickable ? onKeyDown : undefined}
-      style={highlightStyle}
+      style={containerStyle}
     >
       {(highlights.cornerTopRight ?? highlights.cornerBottomRight ?? highlights.cornerTopLeft ?? highlights.cornerBottomLeft) && (
         <>

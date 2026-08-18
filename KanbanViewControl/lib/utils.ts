@@ -362,7 +362,8 @@ export function isNumberFilterExpression(value: unknown): boolean {
 
 /**
  * Numeric OptionSet id(s) of a record value. Accepts a number (single choice),
- * number[] (multiselect choice) and strings that consist of digits only (e.g. "100000001").
+ * number[] (multiselect choice), booleans (TwoOptions: 1 = Yes, 0 = No) and strings that
+ * consist of digits only (e.g. "100000001").
  * Localized labels ("High", "Hoch") intentionally yield [] – they must never be
  * compared numerically, otherwise "1st level" would be read as 1.
  */
@@ -370,6 +371,8 @@ export function toOptionSetNumericIds(value: unknown): number[] {
   if (value == null) return [];
   if (Array.isArray(value)) return value.flatMap((v) => toOptionSetNumericIds(v));
   if (typeof value === "number") return Number.isNaN(value) ? [] : [value];
+  // Boolean/TwoOptions: 1 = Yes, 0 = No – ebenfalls sprachunabhaengig vergleichbar.
+  if (typeof value === "boolean") return [value ? 1 : 0];
   if (typeof value === "string") {
     const trimmed = value.trim();
     return /^-?\d+$/.test(trimmed) ? [Number(trimmed)] : [];
@@ -394,6 +397,18 @@ export function isOptionSetIdInNumberFilterRange(
     const ids = toOptionSetNumericIds(recordValue);
     if (ids.length === 0) return false;
     return ids.some((id) => isNumberInFilterRange(id, filterValue));
+}
+
+/**
+ * True if the record's OptionSet/TwoOptions value equals one of the configured option
+ * values. Compares numeric ids only, so the result is independent of the label language.
+ * Multiselect choices match if ANY of their ids is configured.
+ */
+export function optionIdMatches(recordValue: unknown, optionValue: number | number[]): boolean {
+    const ids = toOptionSetNumericIds(recordValue);
+    if (ids.length === 0) return false;
+    const wanted = Array.isArray(optionValue) ? optionValue : [optionValue];
+    return wanted.some((w) => Number.isFinite(w) && ids.includes(Number(w)));
 }
 
 /** Returns the part before the last dot (linked-entity alias), or null if there is no dot. Use to inspect or distinguish columns that share the same attribute name (e.g. ownerid vs a_xxx.ownerid). */

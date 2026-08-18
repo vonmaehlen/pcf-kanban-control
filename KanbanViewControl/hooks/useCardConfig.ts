@@ -4,6 +4,7 @@ import { parseFieldNameSet, parseFieldDisplayNames } from "../lib/utils";
 import {
   CardConfig,
   BooleanFieldHighlightConfig,
+  CardBackgroundColorConfig,
   HighlightType,
 } from "../context/card-config-context";
 
@@ -44,6 +45,7 @@ export function useCardConfig(
   const lineBreakRaw = rawOf(context, "lineBreakFieldsOnCard");
   const fieldsVisiblePerStageRaw = rawOf(context, "fieldsVisiblePerStage");
   const booleanHighlightsRaw = rawOf(context, "booleanFieldHighlights");
+  const cardBackgroundColorsRaw = rawOf(context, "cardBackgroundColors");
   const fieldWidthsRaw = rawOf(context, "fieldWidthsOnCard");
   const fieldMaxHeightRaw = rawOf(context, "fieldMaxHeightOnCard");
   const fieldDisplayNamesRaw = rawOf(context, "fieldDisplayNamesOnCard");
@@ -127,6 +129,41 @@ export function useCardConfig(
     }
   }, [booleanHighlightsRaw, reportConfigError, clearConfigError]);
 
+  /**
+   * Kartenhintergrund nach Feldwert. Regeln in Konfigurationsreihenfolge; pro Regel entweder
+   * `optionValue` (numerische Option-ID(s), sprachunabhaengig – bevorzugt fuer Choice/Status/
+   * Boolean) oder `value` (Textvergleich auf dem formatierten Wert). Regeln ohne Farbe,
+   * ohne Feld oder ohne Bedingung werden verworfen.
+   */
+  const cardBackgroundColors = useMemo((): CardBackgroundColorConfig[] => {
+    const raw = cardBackgroundColorsRaw?.trim();
+    if (!raw) return [];
+    try {
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return [];
+      clearConfigError?.("cardBackgroundColors");
+      return arr
+        .filter((e: unknown) => e && typeof e === "object")
+        .map((e: { logicalName?: unknown; color?: unknown; optionValue?: unknown; value?: unknown }) => {
+          const optionValues = (Array.isArray(e.optionValue) ? e.optionValue : [e.optionValue])
+            .map((v) => Number(v))
+            .filter((v) => Number.isFinite(v));
+          const textValue = e.value != null ? String(e.value).trim() : "";
+          const rule: CardBackgroundColorConfig = {
+            logicalName: e.logicalName != null ? String(e.logicalName).trim() : "",
+            color: e.color != null ? String(e.color).trim() : "",
+            ...(optionValues.length > 0 ? { optionValue: optionValues } : {}),
+            ...(textValue !== "" ? { value: textValue } : {}),
+          };
+          return rule;
+        })
+        .filter((e) => e.logicalName && e.color && (e.optionValue != null || e.value != null));
+    } catch (e) {
+      reportConfigError?.("cardBackgroundColors", e instanceof Error ? e.message : String(e));
+      return [];
+    }
+  }, [cardBackgroundColorsRaw, reportConfigError, clearConfigError]);
+
   const fieldWidthsOnCardMap = useMemo((): Map<string, number> => {
     const raw = fieldWidthsRaw?.trim();
     if (!raw) return new Map();
@@ -184,6 +221,7 @@ export function useCardConfig(
       htmlFieldsOnCardSet,
       hideLabelForFieldsOnCardSet,
       booleanFieldHighlights,
+      cardBackgroundColors,
       fieldWidthsOnCardMap,
       lookupFieldsAsPersonaOnCardSet,
       lookupFieldsPersonaIconOnlyOnCardSet,
@@ -200,6 +238,7 @@ export function useCardConfig(
       htmlFieldsOnCardSet,
       hideLabelForFieldsOnCardSet,
       booleanFieldHighlights,
+      cardBackgroundColors,
       fieldWidthsOnCardMap,
       lookupFieldsAsPersonaOnCardSet,
       lookupFieldsPersonaIconOnlyOnCardSet,

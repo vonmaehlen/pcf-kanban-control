@@ -3,7 +3,7 @@
   <control 
     namespace="novalogica" 
     constructor="KanbanViewControl" 
-    version="1.7.30"
+    version="1.7.31"
     display-name-key="Kanban View Control" 
     description-key="PowerApps Component Framework control (PCF) that allows users to see records in a kanban view format." 
     control-type="virtual"
@@ -201,6 +201,15 @@
       name="booleanFieldHighlights" 
       display-name-key="Field highlights" 
       description-key="JSON array: [{&quot;logicalName&quot;:&quot;fieldname&quot;,&quot;color&quot;:&quot;#ff0000&quot;,&quot;type&quot;:&quot;left&quot;}]. Any field type (boolean, text, lookup, etc.). Empty = no highlight, filled = highlight. Optional type: left (default), right, cornerTopLeft, cornerTopRight, cornerBottomLeft, cornerBottomRight. left/right = colored border; corner = diagonal corner mark. First match per type wins."
+      of-type="SingleLine.TextArea" 
+      usage="input" 
+      required="false"
+    />
+
+    <property 
+      name="cardBackgroundColors" 
+      display-name-key="Card background colors" 
+      description-key="JSON array: [{&quot;logicalName&quot;:&quot;prioritycode&quot;,&quot;optionValue&quot;:1,&quot;color&quot;:&quot;#FDE7E9&quot;}]. Colors the whole card background by field value. Use optionValue (numeric option id, also 1/0 for Yes/No) for Choice/Status/Yes-No columns - language independent. Use value (text, case-insensitive) for other field types. optionValue also accepts an array, e.g. [2,3]. First matching rule wins. Prefer light colors, the card text stays dark."
       of-type="SingleLine.TextArea" 
       usage="input" 
       required="false"

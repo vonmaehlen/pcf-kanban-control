@@ -68,6 +68,13 @@ Responsive filter bar above the board with inline dropdowns, a funnel button (ri
 - Empty display names from `fieldDisplayNamesOnCard` (and the hide-label config) apply to the **card only** — `quickFilterFieldsConfig` and `sortFieldsConfig` fall back to the column display name so filter and sort dropdowns are never unlabeled.
 - The `OptionIdRaw` suffix ends in `Raw` on purpose: raw keys are excluded from the precomputed card search text and are not rendered on cards. Sorting/column sums keep using `${field}Raw` and are unaffected.
 
+### Card background colors (`cardBackgroundColors`)
+
+- JSON rules `{logicalName, color, optionValue?, value?}` parsed once in `useCardConfig` (`CardBackgroundColorConfig`), applied per card in `Card.tsx` (`backgroundColor` memo, first matching rule wins).
+- `optionValue` compares **numeric option ids** via `optionIdMatches` — language-independent. `value` compares the formatted text (case-insensitive) for field types without an option id.
+- `filterRecords` stores `${field}${OPTION_ID_SUFFIX}` for **every** OptionSet/Choice **and** Boolean column (not only quick-filter fields), so coloring works for columns that are not rendered on the card. `toOptionSetNumericIds` maps booleans to 1/0. `OPTION_ID_SUFFIX` lives in `lib/constants.ts`.
+- The color is applied as the CSS variable `--card-bg` plus the class `card-container--custom-bg`; the hover state darkens it with an inset overlay so no color math is needed in JS. An inline `background-color` would have killed the hover effect.
+
 ### Key Dependencies
 
 - `@hello-pangea/dnd` — Drag-and-drop (fork of react-beautiful-dnd)

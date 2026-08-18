@@ -16,6 +16,19 @@ export interface BooleanFieldHighlightConfig {
   type?: HighlightType;
 }
 
+/**
+ * Regel fuer den Kartenhintergrund nach Feldwert. Genau eine Bedingung pro Regel:
+ * - `optionValue`: numerische Option-ID(s) einer Choice/Status/Boolean-Spalte (sprachunabhaengig)
+ * - `value`: Textvergleich auf dem formatierten Wert (case-insensitiv), fuer Nicht-Choice-Felder
+ * Die erste zutreffende Regel gewinnt.
+ */
+export interface CardBackgroundColorConfig {
+  logicalName: string;
+  color: string;
+  optionValue?: number[];
+  value?: string;
+}
+
 export interface FieldWidthConfig {
   logicalName: string;
   width: number;
@@ -33,6 +46,7 @@ export interface CardConfig {
   htmlFieldsOnCardSet: Set<string>;
   hideLabelForFieldsOnCardSet: Set<string>;
   booleanFieldHighlights: BooleanFieldHighlightConfig[];
+  cardBackgroundColors: CardBackgroundColorConfig[];
   fieldWidthsOnCardMap: Map<string, number>;
   lookupFieldsAsPersonaOnCardSet: Set<string>;
   lookupFieldsPersonaIconOnlyOnCardSet: Set<string>;
@@ -51,6 +65,7 @@ export const emptyCardConfig: CardConfig = {
   htmlFieldsOnCardSet: new Set(),
   hideLabelForFieldsOnCardSet: new Set(),
   booleanFieldHighlights: [],
+  cardBackgroundColors: [],
   fieldWidthsOnCardMap: new Map(),
   lookupFieldsAsPersonaOnCardSet: new Set(),
   lookupFieldsPersonaIconOnlyOnCardSet: new Set(),

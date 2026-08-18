@@ -7,6 +7,14 @@ export const LOAD_MORE_CARDS_COUNT = 30;
 /** Abstand zum unteren Scrollrand (px), ab dem nachgeladen wird. */
 export const SCROLL_LOAD_THRESHOLD_PX = 150;
 
+/**
+ * Suffix des Kartenfelds mit der numerischen OptionSet-ID (z. B. "prioritycodeOptionIdRaw").
+ * Basis fuer sprachunabhaengige Vergleiche: numerische Quick-Filter und Kartenfarben.
+ * Endet auf "Raw", damit der Wert – wie die uebrigen Rohwerte – nicht in den Suchtext und
+ * nicht in die Kartenanzeige gelangt.
+ */
+export const OPTION_ID_SUFFIX = "OptionIdRaw";
+
 export const unlocatedColumn = {
   key: "unallocated",
   id: "unallocated", 

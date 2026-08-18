@@ -197,6 +197,20 @@
   background-color: #eaeaea;
 }
 
+/* Hintergrundfarbe nach Feldwert (Card background colors). Die Farbe kommt als
+   CSS-Variable --card-bg von der Karte; der Hover verdunkelt sie per Inset-Overlay,
+   damit jede Farbe ohne Farbrechnung im JS ein Hover-Feedback behaelt. */
+.card-container--custom-bg,
+.card-container--custom-bg.no-drag {
+  background-color: var(--card-bg, white);
+}
+
+.card-container--custom-bg:hover,
+.card-container--custom-bg.no-drag:hover {
+  background-color: var(--card-bg, white);
+  box-shadow: 0px 4px 16px -2px rgba(0,0,0,0.22), inset 0 0 0 999px rgba(0,0,0,0.06);
+}
+
 .card-container.no-drag {
   cursor: pointer;
 }
