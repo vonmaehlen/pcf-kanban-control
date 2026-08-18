@@ -95,6 +95,10 @@ interface IBoardContext {
   /** Quick filter: facetted counts per field -> per value key -> number of cards that would
    *  remain if that value were selected on top of the other active filters + search. */
   quickFilterCounts: Record<string, Record<string, number>>,
+  /** Quick filter: label per numeric OptionSet id, per field (e.g. { statecode: { "0": "Open" } }).
+   *  Derived from the loaded cards; lets a numeric filter value such as "eq:0" be shown as the
+   *  option label ("Open") instead of the raw expression ("= 0"). */
+  quickFilterOptionLabelsById: Record<string, Record<string, string>>,
   /** Custom full-text search: search term for all card fields */
   searchKeyword: string,
   /** Set search term; empty string = no search */

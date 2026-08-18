@@ -758,7 +758,8 @@ Rules:
 - **Multi-select Choice**: matches when **at least one** selected option value satisfies the condition.
 - **Empty field** (no choice set) **never** matches an active numeric filter.
 - **Mixing labels and operators** in one value is allowed and combined with **OR**, e.g. `{"prioritycode":["lte:2","Not set"]}` – matches option value ≤ 2 **or** the label `Not set`.
-- **UI**: OptionSet fields keep the normal **value list** (multiselect) as quick filter; the number filter UI (Greater than / Less than / Between) is only used for Number/Currency fields. An active numeric filter from a preset appears as an extra, selected entry in the value list (e.g. `≤ 2`) and can be cleared there.
+- **UI**: OptionSet fields keep the normal **value list** (multiselect) as quick filter; the number filter UI (Equals / Greater than / Less than / Between) is only used for Number/Currency fields. An active numeric filter from a preset is shown in the value list as the **affected entries, selected by their label** – e.g. `{"statecode":"eq:0"}` marks `Open` as selected, `"lte:2"` marks `High` and `Normal`. Only a value that matches no loaded record is shown symbolically (e.g. `= 4`) so the active filter stays visible.
+- Changing the selection in that dropdown turns the filter into a normal **label selection** (and clears the preset) – expected, since the dropdown is a label picker.
 - **Boolean/Yes-No** fields are not OptionSets in this sense: they stay single-select on the label (`Yes`/`No`).
 
 ---

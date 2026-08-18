@@ -11,7 +11,7 @@ import type { SortDirection } from "../../context/board-context";
 import type { QuickFilterFieldConfig } from "../../context/board-context";
 import { getStrings } from "../../lib/strings";
 import type { Strings } from "../../lib/strings";
-import { isQuickFilterActive, hasActiveFilters, isNumberFilterExpression, parseNumberFilterValue } from "../../lib/utils";
+import { isQuickFilterActive, hasActiveFilters, isNumberFilterExpression, isNumberInFilterRange, parseNumberFilterValue } from "../../lib/utils";
 
 const QUICK_FILTER_ALL_KEY = "__all__";
 const SORT_NONE_KEY = "__sort_none__";
@@ -48,6 +48,7 @@ function renderFilterControl(
   setQuickFilterValue: (field: string, value: string | string[] | null) => void,
   strings: Strings,
   counts: Record<string, number>,
+  optionLabelsById: Record<string, string>,
   options?: { labelOverride?: string; dropdownWidth?: number }
 ) {
   const label = options?.labelOverride !== undefined ? options.labelOverride : cfg.text;
@@ -102,19 +103,42 @@ function renderFilterControl(
         ? [String(selectedValue)]
         : [];
     // OptionSet mit numerischem Filterausdruck (typischerweise aus einem Filter-Preset,
-    // z. B. "lte:2"): Ausdruck als eigenen, ausgewaehlten Eintrag ergaenzen, damit der
-    // aktive Filter in der Werteliste sichtbar (und abwaehlbar) ist.
+    // z. B. "eq:0"): die betroffenen Werteeintraege als ausgewaehlt markieren, damit in der
+    // Liste das Label steht ("Open") und nicht der Ausdruck. Nur Ausdruecke, zu denen sich
+    // kein Eintrag aufloesen laesst (kein Datensatz mit dieser Option-ID), erscheinen
+    // symbolisch als eigener Eintrag ("= 0"), damit der aktive Filter sichtbar bleibt.
     const numericSelected = cfg.isOptionSetField
       ? selectedKeys.filter(
           (k) => isNumberFilterExpression(k) && !opts.some((o) => String(o.key) === k)
         )
       : [];
-    const optsWithNumeric = numericSelected.length
-      ? [
-          ...numericSelected.map((k) => ({ key: k, text: formatNumberFilterExpression(k) })),
+    let displayedSelectedKeys = selectedKeys;
+    let optsWithNumeric = opts;
+    if (numericSelected.length) {
+      const resolvedLabels: string[] = [];
+      const unresolved: string[] = [];
+      for (const expr of numericSelected) {
+        const labels = Object.keys(optionLabelsById)
+          .filter((id) => isNumberInFilterRange(Number(id), expr))
+          .map((id) => optionLabelsById[id])
+          .filter((lbl) => opts.some((o) => String(o.key) === lbl));
+        if (labels.length) resolvedLabels.push(...labels);
+        else unresolved.push(expr);
+      }
+      displayedSelectedKeys = Array.from(
+        new Set([
+          ...selectedKeys.filter((k) => !numericSelected.includes(k)),
+          ...resolvedLabels,
+          ...unresolved,
+        ])
+      );
+      if (unresolved.length) {
+        optsWithNumeric = [
+          ...unresolved.map((k) => ({ key: k, text: formatNumberFilterExpression(k) })),
           ...opts,
-        ]
-      : opts;
+        ];
+      }
+    }
     return (
       <KanbanDropdown
         key={cfg.key}
@@ -122,7 +146,7 @@ function renderFilterControl(
         placeholder={strings.quickFilterAll}
         options={optsWithNumeric}
         multiSelect
-        selectedKeys={selectedKeys}
+        selectedKeys={displayedSelectedKeys}
         onSelectionChange={(keys) => {
           setQuickFilterValue(cfg.key, keys.length ? keys : null);
         }}
@@ -161,6 +185,7 @@ const QuickFilters = () => {
     setQuickFilterValue,
     quickFilterOptions,
     quickFilterCounts,
+    quickFilterOptionLabelsById,
     searchKeyword,
     setSearchKeyword,
     sortFieldsConfig,
@@ -265,7 +290,7 @@ const QuickFilters = () => {
             className="kanban-quick-filters-inline-item"
             style={i >= effectiveVisibleCount ? { visibility: "hidden", position: "absolute", pointerEvents: "none" } : undefined}
           >
-            {renderFilterControl(cfg, quickFilterOptions, quickFilterValues, setQuickFilterValue, strings, quickFilterCounts[cfg.key] ?? {})}
+            {renderFilterControl(cfg, quickFilterOptions, quickFilterValues, setQuickFilterValue, strings, quickFilterCounts[cfg.key] ?? {}, quickFilterOptionLabelsById[cfg.key] ?? {})}
           </div>
         ))}
       </div>
@@ -304,6 +329,7 @@ const QuickFilters = () => {
                           setQuickFilterValue,
                           strings,
                           quickFilterCounts[cfg.key] ?? {},
+                          quickFilterOptionLabelsById[cfg.key] ?? {},
                           { labelOverride: "" }
                         )}
                       </div>

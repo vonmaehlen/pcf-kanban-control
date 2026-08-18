@@ -788,6 +788,31 @@ const App = ({ context, notificationPosition }: IProps) => {
     return optionsByField;
   }, [transformedCards, quickFilterFieldsConfig, strings]);
 
+  // Label je numerischer OptionSet-ID, aus den geladenen Karten abgeleitet (z. B.
+  // { statecode: { "0": "Open", "1": "Closed" } }). Damit kann die Werteliste einen
+  // numerischen Filterwert wie "eq:0" als betroffenen Eintrag ("Open") markieren statt
+  // ihn als "= 0" anzuzeigen. Haengt wie quickFilterOptions nur an Karten + Konfiguration.
+  const quickFilterOptionLabelsById = useMemo<Record<string, Record<string, string>>>(() => {
+    const result: Record<string, Record<string, string>> = {};
+    for (const cfg of quickFilterFieldsConfig) {
+      if (!cfg.isOptionSetField) continue;
+      const byId: Record<string, string> = {};
+      for (const card of transformedCards) {
+        const id = card[`${cfg.key}${OPTION_ID_SUFFIX}`];
+        // Nur Einzelauswahl: bei Multiselect ist der Kartenwert ein kombiniertes Label
+        // und liesse sich keiner einzelnen ID zuordnen.
+        if (typeof id !== "number") continue;
+        const idKey = String(id);
+        if (byId[idKey] !== undefined) continue;
+        const label = getQuickFilterComparableValue(card[cfg.key]);
+        if (label === "") continue;
+        byId[idKey] = label;
+      }
+      result[cfg.key] = byId;
+    }
+    return result;
+  }, [transformedCards, quickFilterFieldsConfig]);
+
   // Prüft, ob eine Karte die Quick-Filter erfüllt. `exceptKey` blendet EIN Feld aus –
   // für die facettierten Counts dieses Feldes, damit dessen eigene Auswahl nicht mitzählt.
   const cardPassesQuickFilters = useCallback(
@@ -1087,6 +1112,7 @@ const App = ({ context, notificationPosition }: IProps) => {
         setQuickFilterValue,
         quickFilterOptions,
         quickFilterCounts,
+        quickFilterOptionLabelsById,
         searchKeyword,
         setSearchKeyword,
         sortFieldsConfig,
