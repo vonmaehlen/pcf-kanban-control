@@ -108,6 +108,7 @@ The biggest win is `card.fields`: previously **13 properties**, each keyed by fi
       "estimatedvalue": { "displayName": { "de": "Betrag", "en": "Amount" } },
       "statuscode":   { "hidden": true },
       "budgetamount": { "visibleInStages": ["Develop", "Propose"] },
+      "createdon":    { "hiddenInStages": ["Won"] },
       "donotemail":   { "highlight": { "color": "#D13438", "type": "right" } },
       "prioritycode": { "background": [
         { "optionValue": 1,     "color": "#FDE7E9" },
@@ -581,6 +582,28 @@ Format: `{ "fieldLogicalName": ["columnId1", "columnId2", ...], ... }`. A field 
 ```
 
 Here, `estimatedvalue` is visible only in BPF stages Qualify and Develop; `description` only in Develop; `custom_notes` only when the OptionSet column has value 2 or 3.
+
+#### Hiding a field in specific columns (`hiddenInStages`)
+
+The property above is a **whitelist** – to hide one field in a single column you would have to list every other column. The [Config](#config-all-settings-in-one-json) therefore offers the counterpart `hiddenInStages`: the field is visible everywhere **except** in the listed columns.
+
+```json
+{
+  "card": {
+    "fields": {
+      "ownerid":     { "hiddenInStages": ["3"] },
+      "actualvalue": { "visibleInStages": ["3"] }
+    }
+  }
+}
+```
+
+This is the "show the amount instead of the owner in Won" case: the owner disappears in the Won column, the amount appears only there.
+
+- **Only available in the Config** (`card.fields.<field>.hiddenInStages`); there is no separate deprecated property for it.
+- Entries may be the **column id** or the **column title** (case-insensitive). `"3"` and `"Won"` both work for an OptionSet column whose option 3 is displayed as *Won*.
+- **Prefer the id.** The title is the label as displayed, so it is language-dependent: in a German UI the column reads *Gewonnen* and `"Won"` no longer matches, while `"3"` keeps working. For BPF views the column value **is** the stage name, so use the stage name there.
+- If both are set for a field, `visibleInStages` decides first, then `hiddenInStages` removes.
 
 ---
 

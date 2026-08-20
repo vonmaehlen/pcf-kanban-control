@@ -86,6 +86,7 @@ const Card = ({ item, draggable = true }: IProps) => {
     hideColumnFieldOnCard,
     hiddenFieldsOnCardSet,
     fieldsVisiblePerStageMap,
+    fieldsHiddenPerStageMap,
     htmlFieldsOnCardSet,
     hideLabelForFieldsOnCardSet,
     booleanFieldHighlights,
@@ -181,10 +182,29 @@ const Card = ({ item, draggable = true }: IProps) => {
 
   const columnFieldKey = activeView?.key;
 
+  // Spaltenwert der Karte: bei OptionSet-Views die Options-ID, bei BPF-Views der Stage-Name.
   const currentStageName = useMemo(() => {
     const col = item.column;
     return col != null ? String(col).trim() : "";
   }, [item.column]);
+
+  // Zusaetzlich der angezeigte Spaltentitel, damit die Stage-Konfiguration sowohl die
+  // (sprachunabhaengige) Spalten-ID als auch den lesbaren Titel akzeptiert – "Won" statt "3".
+  const currentStageTitle = useMemo(() => {
+    const col = activeView?.columns?.find((c) => String(c.id).trim() === currentStageName);
+    return col?.title != null ? String(col.title).trim() : "";
+  }, [activeView, currentStageName]);
+
+  const stageListMatches = useCallback(
+    (stages: string[]) =>
+      stages.some((entry) => {
+        const wanted = entry.trim().toLowerCase();
+        if (wanted === "") return false;
+        if (wanted === currentStageName.toLowerCase()) return true;
+        return currentStageTitle !== "" && wanted === currentStageTitle.toLowerCase();
+      }),
+    [currentStageName, currentStageTitle]
+  );
 
   const cardDetails = useMemo(() => {
     return Object.entries(item)?.filter((i) => {
@@ -193,11 +213,15 @@ const Card = ({ item, draggable = true }: IProps) => {
       if (setMatchesField(hiddenFieldsOnCardSet, i[0])) return false;
       const allowedStages = fieldsVisiblePerStageMap.get(i[0]);
       if (allowedStages !== undefined && allowedStages.length > 0) {
-        if (!currentStageName || !allowedStages.includes(currentStageName)) return false;
+        if (!currentStageName || !stageListMatches(allowedStages)) return false;
+      }
+      const hiddenStages = fieldsHiddenPerStageMap.get(i[0]);
+      if (hiddenStages !== undefined && hiddenStages.length > 0) {
+        if (stageListMatches(hiddenStages)) return false;
       }
       return true;
     });
-  }, [item, hideColumnFieldOnCard, columnFieldKey, hiddenFieldsOnCardSet, fieldsVisiblePerStageMap, currentStageName]);
+  }, [item, hideColumnFieldOnCard, columnFieldKey, hiddenFieldsOnCardSet, fieldsVisiblePerStageMap, fieldsHiddenPerStageMap, currentStageName, stageListMatches]);
 
   const isClickable = !draggable;
 

@@ -43,6 +43,8 @@ export interface CardConfig {
   hideColumnFieldOnCard: boolean;
   hiddenFieldsOnCardSet: Set<string>;
   fieldsVisiblePerStageMap: Map<string, string[]>;
+  /** Feld -> Spalten/Stages, in denen es NICHT angezeigt wird (Gegenstueck zur Whitelist). */
+  fieldsHiddenPerStageMap: Map<string, string[]>;
   htmlFieldsOnCardSet: Set<string>;
   hideLabelForFieldsOnCardSet: Set<string>;
   booleanFieldHighlights: BooleanFieldHighlightConfig[];
@@ -62,6 +64,7 @@ export const emptyCardConfig: CardConfig = {
   hideColumnFieldOnCard: false,
   hiddenFieldsOnCardSet: new Set(),
   fieldsVisiblePerStageMap: new Map(),
+  fieldsHiddenPerStageMap: new Map(),
   htmlFieldsOnCardSet: new Set(),
   hideLabelForFieldsOnCardSet: new Set(),
   booleanFieldHighlights: [],

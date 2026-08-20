@@ -7,6 +7,7 @@ import {
   cfgFieldNumberMap,
   cfgFieldDisplayNames,
   cfgFieldsVisiblePerStage,
+  cfgFieldsHiddenPerStage,
   cfgPersonaSets,
   cfgHighlights,
   cfgBackgroundColors,
@@ -133,6 +134,13 @@ export function useCardConfig(
       return new Map();
     }
   }, [boardConfig, fieldsVisiblePerStageRaw, reportConfigError, clearConfigError]);
+
+  // Blacklist je Spalte/Stage: nur ueber die konsolidierte Config konfigurierbar
+  // (kein Legacy-Pendant, neue Einstellungen kommen nicht mehr als Einzel-Property).
+  const fieldsHiddenPerStageMap = useMemo(
+    () => cfgFieldsHiddenPerStage(boardConfig ?? null),
+    [boardConfig]
+  );
 
   const booleanFieldHighlights = useMemo((): BooleanFieldHighlightConfig[] => {
     const fromConfig = cfgHighlights(boardConfig ?? null);
@@ -266,6 +274,7 @@ export function useCardConfig(
       hideColumnFieldOnCard: hideColumnFieldOnCardRaw,
       hiddenFieldsOnCardSet,
       fieldsVisiblePerStageMap,
+      fieldsHiddenPerStageMap,
       htmlFieldsOnCardSet,
       hideLabelForFieldsOnCardSet,
       booleanFieldHighlights,
@@ -283,6 +292,7 @@ export function useCardConfig(
       hideColumnFieldOnCardRaw,
       hiddenFieldsOnCardSet,
       fieldsVisiblePerStageMap,
+      fieldsHiddenPerStageMap,
       htmlFieldsOnCardSet,
       hideLabelForFieldsOnCardSet,
       booleanFieldHighlights,

@@ -41,6 +41,11 @@ npm run refreshTypes   # Regenerate ManifestTypes from ControlManifest.Input.xml
 - **Migration export**: `App.tsx` puts the generated JSON on `window.kanbanViewControlConfigExport`; `version.ts` logs the `copy(...)` hint. The round-trip (legacy params → config → derived structures) is the thing to re-test when touching either side.
 - Manifest: all legacy properties carry a `DEPRECATED - use Config: <path>` prefix in their `description-key`.
 
+### Per-column field visibility
+
+- `visibleInStages` (whitelist, legacy property `fieldsVisiblePerStage`) and `hiddenInStages` (blacklist, **Config only** — new settings are no longer added as separate properties) are both evaluated in `Card.tsx` via `stageListMatches`.
+- A card's column value (`item.column`) is the **option id** for OptionSet views and the **stage name** for BPF views. `stageListMatches` additionally resolves the displayed column title from `activeView.columns`, so a config entry may be the id or the title (case-insensitive). Ids stay language-independent; titles do not.
+
 ### Key Modules
 
 - **`App.tsx`** — Root component. Manages views, transforms dataset records to cards, handles column filtering, provides `BoardContext`.

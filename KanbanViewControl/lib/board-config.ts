@@ -32,8 +32,10 @@ export interface ConfigFieldSettings {
   lineBreaks?: boolean;
   html?: boolean;
   persona?: FieldPersona;
-  /** Nur in diesen Spalten/Stages anzeigen. */
+  /** Nur in diesen Spalten/Stages anzeigen (Whitelist). Spalten-ID oder Spaltentitel. */
   visibleInStages?: string[];
+  /** In diesen Spalten/Stages ausblenden (Blacklist), sonst sichtbar. Spalten-ID oder Titel. */
+  hiddenInStages?: string[];
   /** Rand-/Eckmarkierung, wenn das Feld gefuellt bzw. true ist. */
   highlight?: { color: string; type?: string };
   /** Kartenhintergrund nach Wert; erste zutreffende Regel gewinnt. */
@@ -144,6 +146,8 @@ function parseFieldSettings(raw: unknown): ConfigFieldSettings | undefined {
   }
   const stages = asStringArray(obj.visibleInStages);
   if (stages) settings.visibleInStages = stages;
+  const hiddenStages = asStringArray(obj.hiddenInStages);
+  if (hiddenStages) settings.hiddenInStages = hiddenStages;
 
   const highlight = asObject(obj.highlight);
   const highlightColor = highlight ? asTrimmedString(highlight.color) : undefined;
@@ -454,7 +458,7 @@ export function cfgFieldDisplayNames(config: BoardConfig | null, locale: string)
   return result.size > 0 ? result : undefined;
 }
 
-/** Sichtbarkeit je Stage/Spalte. */
+/** Sichtbarkeit je Stage/Spalte (Whitelist). */
 export function cfgFieldsVisiblePerStage(config: BoardConfig | null): Map<string, string[]> | undefined {
   const fields = config?.card?.fields;
   if (!fields) return undefined;
@@ -465,6 +469,17 @@ export function cfgFieldsVisiblePerStage(config: BoardConfig | null): Map<string
     }
   }
   return result.size > 0 ? result : undefined;
+}
+
+/** Ausblenden je Stage/Spalte (Blacklist). Nur ueber die Config konfigurierbar. */
+export function cfgFieldsHiddenPerStage(config: BoardConfig | null): Map<string, string[]> {
+  const result = new Map<string, string[]>();
+  for (const [name, settings] of Object.entries(config?.card?.fields ?? {})) {
+    if (settings.hiddenInStages && settings.hiddenInStages.length > 0) {
+      result.set(name, settings.hiddenInStages);
+    }
+  }
+  return result;
 }
 
 /** Lookup-Persona: alle Felder mit persona true|"iconOnly" bzw. nur "iconOnly". */
