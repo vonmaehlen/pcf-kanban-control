@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.31";
+export const CONTROL_VERSION = "1.7.32";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 30;
+export const BUILD_NUMBER = 31;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "Kartenhintergrund nach Feldwert (Option-ID-basiert, uebersetzungssicher)";
+export const BUILD_DESCRIPTION = "Konsolidierte Config-Property (ein JSON) + Config-Export zur Migration";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
@@ -34,6 +34,13 @@ export function logBuildInfo(): void {
   // eslint-disable-next-line no-console
   console.info(
     `%c🗂️ KanbanViewControl ${BUILD_LABEL}%c — ${BUILD_DESCRIPTION}`,
+    "font-weight:bold;color:#0b6a0b",
+    "color:inherit"
+  );
+  // Migrationshilfe: konsolidiertes Config-JSON aus den aktuell gesetzten (alten)
+  // Properties. Wird in App.tsx auf window gelegt; hier nur der Hinweis, wie man es holt.
+  console.info(
+    "%c🗂️ Config-Export:%c copy(window.kanbanViewControlConfigExport) — liefert die aktuelle Konfiguration als EIN JSON für die Property \"Config\".",
     "font-weight:bold;color:#0b6a0b",
     "color:inherit"
   );

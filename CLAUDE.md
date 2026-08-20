@@ -33,6 +33,14 @@ npm run refreshTypes   # Regenerate ManifestTypes from ControlManifest.Input.xml
 
 **Data flow:** PCF dataset context → App fetches option sets + BPFs via `useDataverse` → transforms records into `CardItem[]` grouped by `ColumnItem[]` → Board renders columns with drag-and-drop cards → drag completion updates Dataverse via WebAPI.
 
+### Consolidated configuration (`config` property)
+
+- **`lib/board-config.ts`** is the single source: `parseBoardConfig` (section-isolated validation), path getters (`cfgBool` / `cfgString` / `cfgNumber` / `cfgValue`) reading a module-level cache via `getBoardConfig(context)`, `card.fields` derivations (`cfgFieldFlagSet`, `cfgFieldNumberMap`, `cfgFieldDisplayNames`, `cfgFieldsVisiblePerStage`, `cfgPersonaSets`, `cfgHighlights`, `cfgBackgroundColors`), and `buildConfigFromLegacyParameters` (migration export).
+- **Precedence is per setting**: every consumer reads `config value ?? legacy property`. Nothing was removed, so old boards keep working. When adding a setting, wire both paths.
+- `App.tsx` parses the config once with the error reporter (banner) and passes it into `useCardConfig`; components without that reporter (`Board`, `Column`, `ColumnHeader`, `CardDetails`, `index.ts`, `useDataverse`) use the cached path getters.
+- **Migration export**: `App.tsx` puts the generated JSON on `window.kanbanViewControlConfigExport`; `version.ts` logs the `copy(...)` hint. The round-trip (legacy params → config → derived structures) is the thing to re-test when touching either side.
+- Manifest: all legacy properties carry a `DEPRECATED - use Config: <path>` prefix in their `description-key`.
+
 ### Key Modules
 
 - **`App.tsx`** — Root component. Manages views, transforms dataset records to cards, handles column filtering, provides `BoardContext`.

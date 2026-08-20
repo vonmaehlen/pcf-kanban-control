@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cfgBool } from "../../lib/board-config";
 import { Text } from "@fluentui/react/lib/Text";
 import IconButton from "../button/IconButton";
 import { ColumnItem } from "../../interfaces";
@@ -15,7 +16,9 @@ const ColumnHeader = ({ column }: IProps) => {
   const { context, activeView } = useContext(BoardContext);
   const { createNewRecord } = useNavigation(context);
 
-  const allowCreateNew = (context.parameters as { allowCreateNew?: { raw?: boolean } }).allowCreateNew?.raw !== false;
+  const allowCreateNew =
+    cfgBool(context, "board.allowCreateNew") ??
+    (context.parameters as { allowCreateNew?: { raw?: boolean } }).allowCreateNew?.raw !== false;
 
   const onAddNewRecord = async (column: string) => {
     await createNewRecord(activeView?.key as string, column);

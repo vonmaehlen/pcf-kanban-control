@@ -2,6 +2,16 @@ import { useMemo } from "react";
 import { IInputs } from "../generated/ManifestTypes";
 import { parseFieldNameSet, parseFieldDisplayNames } from "../lib/utils";
 import {
+  BoardConfig,
+  cfgFieldFlagSet,
+  cfgFieldNumberMap,
+  cfgFieldDisplayNames,
+  cfgFieldsVisiblePerStage,
+  cfgPersonaSets,
+  cfgHighlights,
+  cfgBackgroundColors,
+} from "../lib/board-config";
+import {
   CardConfig,
   BooleanFieldHighlightConfig,
   CardBackgroundColorConfig,
@@ -32,9 +42,13 @@ export function useCardConfig(
   locale: string,
   reportConfigError?: ReportConfigError,
   clearConfigError?: ClearConfigError,
+  /** Konsolidierte Konfiguration; gewinnt pro Einstellung ueber die alten Properties. */
+  boardConfig?: BoardConfig | null,
 ): CardConfig {
-  const hideColumnFieldOnCardRaw = boolOf(context, "hideColumnFieldOnCard");
-  const showEmailAndPhoneAsLinksRaw = boolOf(context, "showEmailAndPhoneAsLinks");
+  const hideColumnFieldOnCardRaw =
+    boardConfig?.card?.hideColumnField ?? boolOf(context, "hideColumnFieldOnCard");
+  const showEmailAndPhoneAsLinksRaw =
+    boardConfig?.card?.showEmailAndPhoneAsLinks ?? boolOf(context, "showEmailAndPhoneAsLinks");
 
   const hiddenFieldsRaw = rawOf(context, "hiddenFieldsOnCard");
   const htmlFieldsRaw = rawOf(context, "htmlFieldsOnCard");
@@ -51,36 +65,53 @@ export function useCardConfig(
   const fieldDisplayNamesRaw = rawOf(context, "fieldDisplayNamesOnCard");
 
   const hiddenFieldsOnCardSet = useMemo(
-    () => parseFieldNameSet(hiddenFieldsRaw, "hiddenFieldsOnCard", reportConfigError, clearConfigError),
-    [hiddenFieldsRaw, reportConfigError, clearConfigError]
+    () =>
+      cfgFieldFlagSet(boardConfig ?? null, "hidden") ??
+      parseFieldNameSet(hiddenFieldsRaw, "hiddenFieldsOnCard", reportConfigError, clearConfigError),
+    [boardConfig, hiddenFieldsRaw, reportConfigError, clearConfigError]
   );
   const htmlFieldsOnCardSet = useMemo(
-    () => parseFieldNameSet(htmlFieldsRaw, "htmlFieldsOnCard", reportConfigError, clearConfigError),
-    [htmlFieldsRaw, reportConfigError, clearConfigError]
+    () =>
+      cfgFieldFlagSet(boardConfig ?? null, "html") ??
+      parseFieldNameSet(htmlFieldsRaw, "htmlFieldsOnCard", reportConfigError, clearConfigError),
+    [boardConfig, htmlFieldsRaw, reportConfigError, clearConfigError]
   );
   const hideLabelForFieldsOnCardSet = useMemo(
-    () => parseFieldNameSet(hideLabelRaw, "hideLabelForFieldsOnCard", reportConfigError, clearConfigError),
-    [hideLabelRaw, reportConfigError, clearConfigError]
+    () =>
+      cfgFieldFlagSet(boardConfig ?? null, "hideLabel") ??
+      parseFieldNameSet(hideLabelRaw, "hideLabelForFieldsOnCard", reportConfigError, clearConfigError),
+    [boardConfig, hideLabelRaw, reportConfigError, clearConfigError]
   );
+  const personaSets = useMemo(() => cfgPersonaSets(boardConfig ?? null), [boardConfig]);
   const lookupFieldsAsPersonaOnCardSet = useMemo(
-    () => parseFieldNameSet(lookupPersonaRaw, "lookupFieldsAsPersonaOnCard", reportConfigError, clearConfigError),
-    [lookupPersonaRaw, reportConfigError, clearConfigError]
+    () =>
+      personaSets?.asPersona ??
+      parseFieldNameSet(lookupPersonaRaw, "lookupFieldsAsPersonaOnCard", reportConfigError, clearConfigError),
+    [personaSets, lookupPersonaRaw, reportConfigError, clearConfigError]
   );
   const lookupFieldsPersonaIconOnlyOnCardSet = useMemo(
-    () => parseFieldNameSet(lookupPersonaIconOnlyRaw, "lookupFieldsPersonaIconOnlyOnCard", reportConfigError, clearConfigError),
-    [lookupPersonaIconOnlyRaw, reportConfigError, clearConfigError]
+    () =>
+      personaSets?.iconOnly ??
+      parseFieldNameSet(lookupPersonaIconOnlyRaw, "lookupFieldsPersonaIconOnlyOnCard", reportConfigError, clearConfigError),
+    [personaSets, lookupPersonaIconOnlyRaw, reportConfigError, clearConfigError]
   );
   const ellipsisFieldsOnCardSet = useMemo(
-    () => parseFieldNameSet(ellipsisRaw, "ellipsisFieldsOnCard", reportConfigError, clearConfigError),
-    [ellipsisRaw, reportConfigError, clearConfigError]
+    () =>
+      cfgFieldFlagSet(boardConfig ?? null, "ellipsis") ??
+      parseFieldNameSet(ellipsisRaw, "ellipsisFieldsOnCard", reportConfigError, clearConfigError),
+    [boardConfig, ellipsisRaw, reportConfigError, clearConfigError]
   );
   const lineBreakFieldsOnCardSet = useMemo(
-    () => parseFieldNameSet(lineBreakRaw, "lineBreakFieldsOnCard", reportConfigError, clearConfigError),
-    [lineBreakRaw, reportConfigError, clearConfigError]
+    () =>
+      cfgFieldFlagSet(boardConfig ?? null, "lineBreaks") ??
+      parseFieldNameSet(lineBreakRaw, "lineBreakFieldsOnCard", reportConfigError, clearConfigError),
+    [boardConfig, lineBreakRaw, reportConfigError, clearConfigError]
   );
 
   /** Map: Feld-Logicalname -> Liste der Spalten/Stages, in denen das Feld sichtbar ist. */
   const fieldsVisiblePerStageMap = useMemo((): Map<string, string[]> => {
+    const fromConfig = cfgFieldsVisiblePerStage(boardConfig ?? null);
+    if (fromConfig) return fromConfig;
     const raw = fieldsVisiblePerStageRaw?.trim();
     if (!raw) return new Map();
     try {
@@ -101,9 +132,18 @@ export function useCardConfig(
       reportConfigError?.("fieldsVisiblePerStage", e instanceof Error ? e.message : String(e));
       return new Map();
     }
-  }, [fieldsVisiblePerStageRaw, reportConfigError, clearConfigError]);
+  }, [boardConfig, fieldsVisiblePerStageRaw, reportConfigError, clearConfigError]);
 
   const booleanFieldHighlights = useMemo((): BooleanFieldHighlightConfig[] => {
+    const fromConfig = cfgHighlights(boardConfig ?? null);
+    if (fromConfig) {
+      const validTypes: HighlightType[] = ["left", "right", "cornerTopRight", "cornerBottomRight", "cornerTopLeft", "cornerBottomLeft"];
+      return fromConfig.map((h) => ({
+        logicalName: h.logicalName,
+        color: h.color,
+        type: validTypes.includes((h.type ?? "left") as HighlightType) ? ((h.type ?? "left") as HighlightType) : "left",
+      }));
+    }
     const raw = booleanHighlightsRaw?.trim();
     if (!raw) return [];
     try {
@@ -127,7 +167,7 @@ export function useCardConfig(
       reportConfigError?.("booleanFieldHighlights", e instanceof Error ? e.message : String(e));
       return [];
     }
-  }, [booleanHighlightsRaw, reportConfigError, clearConfigError]);
+  }, [boardConfig, booleanHighlightsRaw, reportConfigError, clearConfigError]);
 
   /**
    * Kartenhintergrund nach Feldwert. Regeln in Konfigurationsreihenfolge; pro Regel entweder
@@ -136,6 +176,8 @@ export function useCardConfig(
    * ohne Feld oder ohne Bedingung werden verworfen.
    */
   const cardBackgroundColors = useMemo((): CardBackgroundColorConfig[] => {
+    const fromConfig = cfgBackgroundColors(boardConfig ?? null);
+    if (fromConfig) return fromConfig;
     const raw = cardBackgroundColorsRaw?.trim();
     if (!raw) return [];
     try {
@@ -162,9 +204,11 @@ export function useCardConfig(
       reportConfigError?.("cardBackgroundColors", e instanceof Error ? e.message : String(e));
       return [];
     }
-  }, [cardBackgroundColorsRaw, reportConfigError, clearConfigError]);
+  }, [boardConfig, cardBackgroundColorsRaw, reportConfigError, clearConfigError]);
 
   const fieldWidthsOnCardMap = useMemo((): Map<string, number> => {
+    const fromConfig = cfgFieldNumberMap(boardConfig ?? null, "width");
+    if (fromConfig) return fromConfig;
     const raw = fieldWidthsRaw?.trim();
     if (!raw) return new Map();
     try {
@@ -184,9 +228,11 @@ export function useCardConfig(
       reportConfigError?.("fieldWidthsOnCard", e instanceof Error ? e.message : String(e));
       return new Map();
     }
-  }, [fieldWidthsRaw, reportConfigError, clearConfigError]);
+  }, [boardConfig, fieldWidthsRaw, reportConfigError, clearConfigError]);
 
   const fieldMaxHeightOnCardMap = useMemo((): Map<string, number> => {
+    const fromConfig = cfgFieldNumberMap(boardConfig ?? null, "maxHeightPx");
+    if (fromConfig) return fromConfig;
     const raw = fieldMaxHeightRaw?.trim();
     if (!raw) return new Map();
     try {
@@ -206,11 +252,13 @@ export function useCardConfig(
       reportConfigError?.("fieldMaxHeightOnCard", e instanceof Error ? e.message : String(e));
       return new Map();
     }
-  }, [fieldMaxHeightRaw, reportConfigError, clearConfigError]);
+  }, [boardConfig, fieldMaxHeightRaw, reportConfigError, clearConfigError]);
 
   const fieldDisplayNamesOnCardMap = useMemo(
-    () => parseFieldDisplayNames(fieldDisplayNamesRaw, locale, reportConfigError, clearConfigError),
-    [fieldDisplayNamesRaw, locale, reportConfigError, clearConfigError]
+    () =>
+      cfgFieldDisplayNames(boardConfig ?? null, locale) ??
+      parseFieldDisplayNames(fieldDisplayNamesRaw, locale, reportConfigError, clearConfigError),
+    [boardConfig, fieldDisplayNamesRaw, locale, reportConfigError, clearConfigError]
   );
 
   return useMemo(

@@ -13,6 +13,13 @@ import { CardActionsContext } from "./context/card-actions-context";
 import { useNavigation } from "./hooks/useNavigation";
 import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, isOptionSetColumnDataType, toComparableDate, toComparableNumber, toOptionSetNumericIds, isDateInFilterRange, isNumberInFilterRange, isNumberFilterExpression, isOptionSetIdInNumberFilterRange, parseFieldDisplayNames } from "./lib/utils";
 import { unlocatedColumn, OPTION_ID_SUFFIX } from "./lib/constants";
+import {
+  parseBoardConfig,
+  buildConfigFromLegacyParameters,
+  CONFIG_PROPERTY_NAME,
+  rawParam,
+  getBoardConfig,
+} from "./lib/board-config";
 import { getLocaleFromLanguageId, getStrings } from "./lib/strings";
 import { getClientUrl, loadWebResourceScript } from "./lib/load-validation-script";
 import { Spinner, SpinnerSize } from "@fluentui/react";
@@ -171,6 +178,10 @@ const App = ({ context, notificationPosition }: IProps) => {
   const quickFiltersStorageKey =
     viewId ? `${QUICK_FILTERS_STORAGE_PREFIX}-${storageEntityType}-${viewId}` : null;
 
+  // Fuer Werte, die schon vor der Definition des Fehler-Reporters gebraucht werden
+  // (Initialisierung von Sortierung/Filtern). Parsen ist modulweit gecacht.
+  const configBoardEarly = getBoardConfig(context);
+
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState<ViewItem | undefined>();
   const [columns, setColumns] = useState<ColumnItem[]>([]);
@@ -191,18 +202,28 @@ const App = ({ context, notificationPosition }: IProps) => {
       ? (loadStoredQuickFilters(quickFiltersStorageKey)?.searchKeyword ?? "")
       : ""
   );
+  const configDefaultSort = configBoardEarly?.filters?.sort?.default;
   const defaultSortConfig = useMemo(
     () =>
-      parseDefaultSort(
-        (context.parameters as { defaultSort?: { raw?: string } }).defaultSort?.raw
-      ),
-    [(context.parameters as { defaultSort?: { raw?: string } }).defaultSort?.raw]
+      configDefaultSort?.field
+        ? {
+            field: configDefaultSort.field,
+            direction: (configDefaultSort.direction === "desc" ? "desc" : "asc") as SortDirection,
+          }
+        : parseDefaultSort(
+            (context.parameters as { defaultSort?: { raw?: string } }).defaultSort?.raw
+          ),
+    [configDefaultSort, (context.parameters as { defaultSort?: { raw?: string } }).defaultSort?.raw]
   );
 
   const sortFieldsParamForInit = (context.parameters as { sortFields?: { raw?: string } })
     .sortFields?.raw;
+  const configSortFields = configBoardEarly?.filters?.sort?.fields;
   const defaultSortFieldValid = useMemo(() => {
     if (!defaultSortConfig.field) return null;
+    if (configSortFields) {
+      return configSortFields.includes(defaultSortConfig.field) ? defaultSortConfig.field : null;
+    }
     const list = parseQuickFilterFieldsRaw(
       sortFieldsParamForInit,
       () => {},
@@ -210,7 +231,7 @@ const App = ({ context, notificationPosition }: IProps) => {
       "sortFields"
     );
     return list.includes(defaultSortConfig.field!) ? defaultSortConfig.field : null;
-  }, [defaultSortConfig.field, sortFieldsParamForInit]);
+  }, [defaultSortConfig.field, configSortFields, sortFieldsParamForInit]);
 
   const [sortByField, setSortByField] = useState<string | null>(() => {
     const stored = quickFiltersStorageKey
@@ -244,14 +265,18 @@ const App = ({ context, notificationPosition }: IProps) => {
   const appliedDefaultPresetRef = useRef(false);
 
   const cardMoveValidationFunctionName = useMemo(() => {
-    const raw = (context.parameters as { cardMoveValidationFunction?: { raw?: string } }).cardMoveValidationFunction?.raw;
+    const raw =
+      configBoardEarly?.board?.cardMoveValidation?.function ??
+      (context.parameters as { cardMoveValidationFunction?: { raw?: string } }).cardMoveValidationFunction?.raw;
     if (typeof raw !== "string") return undefined;
     const trimmed = raw.trim();
     return trimmed || undefined;
   }, [(context.parameters as { cardMoveValidationFunction?: { raw?: string } }).cardMoveValidationFunction?.raw]);
 
   const cardMoveValidationScriptName = useMemo(() => {
-    const raw = (context.parameters as { cardMoveValidationScript?: { raw?: string } }).cardMoveValidationScript?.raw;
+    const raw =
+      configBoardEarly?.board?.cardMoveValidation?.script ??
+      (context.parameters as { cardMoveValidationScript?: { raw?: string } }).cardMoveValidationScript?.raw;
     if (typeof raw !== "string") return undefined;
     const trimmed = raw.trim();
     return trimmed || undefined;
@@ -285,14 +310,41 @@ const App = ({ context, notificationPosition }: IProps) => {
   );
   const strings = getStrings(locale);
   const { getOptionSets, getBusinessProcessFlows } = useDataverse(context, reportConfigError, clearConfigError);
-  const cardConfig = useCardConfig(context, locale, reportConfigError, clearConfigError);
+  // Konsolidierte Konfiguration (Property "config"). Wird pro Einstellung den alten
+  // Properties vorgezogen; Parse-Fehler landen im Konfigurationsfehler-Banner.
+  const configParamRaw = rawParam(context, CONFIG_PROPERTY_NAME);
+  const boardConfig = useMemo(
+    () => parseBoardConfig(configParamRaw, reportConfigError, clearConfigError),
+    [configParamRaw, reportConfigError, clearConfigError]
+  );
+
+  // Migrationshilfe: aequivalentes Config-JSON aus den aktuell gesetzten alten Properties.
+  // In der Browser-Konsole per copy(window.kanbanViewControlConfigExport) abholbar.
+  useEffect(() => {
+    try {
+      (window as unknown as Record<string, unknown>).kanbanViewControlConfigExport =
+        buildConfigFromLegacyParameters(context);
+    } catch {
+      // Migrationshilfe darf das Board nie stoeren
+    }
+  }, [context]);
+
+  const cardConfig = useCardConfig(context, locale, reportConfigError, clearConfigError, boardConfig);
   const { openForm, openEntityInNewTab, openCreateActivityForm, openSharePointFolderInNewTab } = useNavigation(context);
   const { dataset } = context.parameters;
-  const showOpenInNewTabButton = (context.parameters as { showOpenInNewTabButton?: { raw?: boolean } }).showOpenInNewTabButton?.raw === true;
-  const showCreateActivityButton = (context.parameters as { showCreateActivityButton?: { raw?: boolean } }).showCreateActivityButton?.raw === true;
-  const createActivityEntityTypeRaw = (context.parameters as { createActivityEntityType?: { raw?: string } }).createActivityEntityType?.raw?.trim();
+  const showOpenInNewTabButton =
+    boardConfig?.card?.showOpenInNewTab ??
+    (context.parameters as { showOpenInNewTabButton?: { raw?: boolean } }).showOpenInNewTabButton?.raw === true;
+  const showCreateActivityButton =
+    boardConfig?.card?.showCreateActivity ??
+    (context.parameters as { showCreateActivityButton?: { raw?: boolean } }).showCreateActivityButton?.raw === true;
+  const createActivityEntityTypeRaw =
+    boardConfig?.card?.createActivityEntityType ??
+    (context.parameters as { createActivityEntityType?: { raw?: string } }).createActivityEntityType?.raw?.trim();
   const createActivityEntityType = createActivityEntityTypeRaw !== undefined && createActivityEntityTypeRaw !== "" ? createActivityEntityTypeRaw : "task";
-  const showSharePointFolderButton = (context.parameters as { showSharePointFolderButton?: { raw?: boolean } }).showSharePointFolderButton?.raw === true;
+  const showSharePointFolderButton =
+    boardConfig?.card?.showSharePointFolder ??
+    (context.parameters as { showSharePointFolderButton?: { raw?: boolean } }).showSharePointFolderButton?.raw === true;
 
   // Key for refresh: derived from current records on each render so that
   // after dataset.refresh() the display updates (even when PCF returns the same reference).
@@ -300,13 +352,20 @@ const App = ({ context, notificationPosition }: IProps) => {
     `${Object.keys(dataset.records).length}-${Object.keys(dataset.records).sort().slice(0, 100).join(",")}`;
 
   const quickFilterFieldsParam = (context.parameters as { quickFilterFields?: { raw?: string } }).quickFilterFields?.raw;
+  const configQuickFilters = boardConfig?.filters?.quickFilters;
   const quickFilterFieldsParsed = useMemo(
-    () => parseQuickFilterFieldsRaw(quickFilterFieldsParam, reportConfigError, clearConfigError, "quickFilterFields"),
-    [quickFilterFieldsParam, reportConfigError, clearConfigError]
+    () =>
+      configQuickFilters
+        ? configQuickFilters.map((q) => q.field)
+        : parseQuickFilterFieldsRaw(quickFilterFieldsParam, reportConfigError, clearConfigError, "quickFilterFields"),
+    [configQuickFilters, quickFilterFieldsParam, reportConfigError, clearConfigError]
   );
 
   const quickFilterFieldsInPopupParam = (context.parameters as { quickFilterFieldsInPopup?: { raw?: string } }).quickFilterFieldsInPopup?.raw;
   const quickFilterFieldsInPopupSet = useMemo((): Set<string> => {
+    if (configQuickFilters) {
+      return new Set(configQuickFilters.filter((q) => q.inPopup).map((q) => q.field));
+    }
     const list = parseQuickFilterFieldsRaw(
       quickFilterFieldsInPopupParam,
       reportConfigError,
@@ -314,12 +373,14 @@ const App = ({ context, notificationPosition }: IProps) => {
       "quickFilterFieldsInPopup"
     );
     return new Set(list);
-  }, [quickFilterFieldsInPopupParam, reportConfigError, clearConfigError]);
+  }, [configQuickFilters, quickFilterFieldsInPopupParam, reportConfigError, clearConfigError]);
 
   const sortFieldsParam = (context.parameters as { sortFields?: { raw?: string } }).sortFields?.raw;
   const sortFieldsParsed = useMemo(
-    () => parseQuickFilterFieldsRaw(sortFieldsParam, reportConfigError, clearConfigError, "sortFields"),
-    [sortFieldsParam, reportConfigError, clearConfigError]
+    () =>
+      boardConfig?.filters?.sort?.fields ??
+      parseQuickFilterFieldsRaw(sortFieldsParam, reportConfigError, clearConfigError, "sortFields"),
+    [boardConfig, sortFieldsParam, reportConfigError, clearConfigError]
   );
 
   // Filter presets JSON config: from component property "Filter presets" (filterPresets).
@@ -327,8 +388,12 @@ const App = ({ context, notificationPosition }: IProps) => {
   const params = context.parameters as unknown as Record<string, { raw?: string } | undefined>;
   const filterPresetsParamRaw =
     params.filterPresets?.raw ?? params["filterPresets"]?.raw;
-  const filterPresetsParam =
-    typeof filterPresetsParamRaw === "string" ? filterPresetsParamRaw.trim() : "";
+  const configPresets = boardConfig?.filters?.presets;
+  const filterPresetsParam = configPresets
+    ? JSON.stringify(configPresets)
+    : typeof filterPresetsParamRaw === "string"
+      ? filterPresetsParamRaw.trim()
+      : "";
   const filterPresetsConfig = useMemo((): FilterPresetConfig[] => {
     if (!filterPresetsParam) return [];
     try {
@@ -994,6 +1059,7 @@ const App = ({ context, notificationPosition }: IProps) => {
     // jeder Paging-Iteration ausgeführt und verworfen). OptionSets und BPF sind voneinander
     // unabhängig -> parallel laden, damit die Latenz das Maximum statt die Summe beider ist.
     const disableBpf =
+      configBoardEarly?.view?.bpf?.disable ??
       (context.parameters as { disableBusinessProcessFlows?: { raw?: boolean } })
         .disableBusinessProcessFlows?.raw === true;
     const [options, process] = await Promise.all([
@@ -1011,7 +1077,7 @@ const App = ({ context, notificationPosition }: IProps) => {
 
     setViews(allViews);
 
-    const defaultView = context.parameters.defaultView?.raw;
+    const defaultView = configBoardEarly?.view?.default ?? context.parameters.defaultView?.raw;
 
     if (defaultView && !activeView) {
       const view = allViews.find((view) => view.text == defaultView);

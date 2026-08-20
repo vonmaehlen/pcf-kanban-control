@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cfgBool, cfgNumber } from "../../lib/board-config";
 import { useContext, useCallback, useRef, useState } from "react";
 import { Draggable, Droppable } from "@hello-pangea/dnd";
 import Card from "../card/Card";
@@ -25,14 +26,17 @@ function parseInitialCardsVisible(raw: unknown): number {
 const Column = ({ column, widthPx }: { column: ColumnItem; widthPx?: number }) => {
   const { locale, context, draggingRef, openFormWithLoading } = useContext(BoardContext);
   const strings = getStrings(locale);
-  const allowCardMove = ((context.parameters as unknown) as { allowCardMove?: { raw?: boolean } }).allowCardMove?.raw !== false;
+  const allowCardMove =
+    cfgBool(context, "board.allowCardMove") ??
+    ((context.parameters as unknown) as { allowCardMove?: { raw?: boolean } }).allowCardMove?.raw !== false;
   const hasCards = !isNullOrEmpty(column.cards) && column.cards!.length > 0;
   const columnStyle = widthPx != null ? { width: widthPx, minWidth: widthPx, maxWidth: widthPx } : undefined;
   const cards = column.cards ?? [];
   const totalCount = cards.length;
 
   const initialCardsVisible = parseInitialCardsVisible(
-    (context.parameters as { initialCardsVisible?: { raw?: unknown } }).initialCardsVisible?.raw
+    cfgNumber(context, "board.initialCardsVisible") ??
+      (context.parameters as { initialCardsVisible?: { raw?: unknown } }).initialCardsVisible?.raw
   );
   const [visibleCount, setVisibleCount] = useState(initialCardsVisible);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);

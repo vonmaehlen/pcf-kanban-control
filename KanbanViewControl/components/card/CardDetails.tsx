@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cfgString } from "../../lib/board-config";
 import { useRef, useEffect, useMemo } from "react";
 import { CardInfo, UniqueIdentifier } from "../../interfaces";
 import { Text } from "@fluentui/react/lib/Text";
@@ -84,8 +85,10 @@ const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml =
   const onLinkClick = (e: React.MouseEvent) => e.stopPropagation();
 
   const htmlSanitizeParams = context.parameters as HtmlSanitizeParams;
-  const allowedTagsRaw = htmlSanitizeParams.allowedHtmlTagsOnCard?.raw;
-  const allowedAttrsRaw = htmlSanitizeParams.allowedHtmlAttributesOnCard?.raw;
+  const allowedTagsRaw =
+    cfgString(context, "card.html.allowedTags") ?? htmlSanitizeParams.allowedHtmlTagsOnCard?.raw;
+  const allowedAttrsRaw =
+    cfgString(context, "card.html.allowedAttributes") ?? htmlSanitizeParams.allowedHtmlAttributesOnCard?.raw;
   // DOMPurify-Sanitisierung memoisieren: laeuft nur neu, wenn sich Inhalt oder erlaubte
   // Tags/Attribute aendern, nicht bei jedem Re-Render des HTML-Feldes.
   const sanitizedHtml = useMemo(

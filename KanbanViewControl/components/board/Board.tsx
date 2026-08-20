@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cfgBool, cfgNumber, cfgValue } from "../../lib/board-config";
 import { useContext, useMemo } from "react";
 import { CommandBar, Column, QuickFilters } from "..";
 import {
@@ -19,9 +20,11 @@ const Board = () => {
   const { onDragEnd } = useDnD(columns);
 
   const allowCardMove = useMemo(() => {
+    const fromConfig = cfgBool(context, "board.allowCardMove");
+    if (fromConfig !== undefined) return fromConfig;
     const raw = (context.parameters as { allowCardMove?: { raw?: boolean } }).allowCardMove?.raw;
     return raw !== false;
-  }, [context.parameters]);
+  }, [context]);
 
   const handleDragStart = () => {
     draggingRef.current = true;
@@ -62,35 +65,48 @@ const Board = () => {
   };
 
   const hideViews = useMemo(() => {
-    return context.parameters.hideViewBy?.raw;
-  }, [context.parameters.hideViewBy]);
+    return cfgBool(context, "view.hide") ?? context.parameters.hideViewBy?.raw;
+  }, [context]);
 
   const hideEmptyColumns = useMemo(() => {
-    return (context.parameters as { hideEmptyColumns?: { raw?: boolean } }).hideEmptyColumns?.raw === true;
-  }, [context.parameters]);
+    return (
+      cfgBool(context, "board.hideEmptyColumns") ??
+      (context.parameters as { hideEmptyColumns?: { raw?: boolean } }).hideEmptyColumns?.raw === true
+    );
+  }, [context]);
 
   const expandBoardToFullWidth = useMemo(() => {
-    return (context.parameters as { expandBoardToFullWidth?: { raw?: boolean } }).expandBoardToFullWidth?.raw === true;
-  }, [context.parameters]);
+    return (
+      cfgBool(context, "board.fullWidth") ??
+      (context.parameters as { expandBoardToFullWidth?: { raw?: boolean } }).expandBoardToFullWidth?.raw === true
+    );
+  }, [context]);
 
   const minColumnWidthPx = useMemo(() => {
-    const raw = (context.parameters as { minColumnWidth?: { raw?: string } }).minColumnWidth?.raw;
+    const raw =
+      cfgNumber(context, "board.minColumnWidth") ??
+      (context.parameters as { minColumnWidth?: { raw?: string } }).minColumnWidth?.raw;
     if (raw == null || String(raw).trim() === "") return undefined;
     const n = parseInt(String(raw).trim(), 10);
     if (Number.isNaN(n) || n < 200 || n > 1200) return undefined;
     return n;
-  }, [context.parameters]);
+  }, [context]);
 
   const maxColumnWidthPx = useMemo(() => {
-    const raw = (context.parameters as { maxColumnWidth?: { raw?: string } }).maxColumnWidth?.raw;
+    const raw =
+      cfgNumber(context, "board.maxColumnWidth") ??
+      (context.parameters as { maxColumnWidth?: { raw?: string } }).maxColumnWidth?.raw;
     if (raw == null || String(raw).trim() === "") return undefined;
     const n = parseInt(String(raw).trim(), 10);
     if (Number.isNaN(n) || n < 200 || n > 2000) return undefined;
     return n;
-  }, [context.parameters]);
+  }, [context]);
 
   const columnWidthsMap = useMemo(() => {
-    const raw = (context.parameters as { columnWidths?: { raw?: string } }).columnWidths?.raw;
+    const fromConfig = cfgValue(context, "board.columnWidths");
+    const raw = Array.isArray(fromConfig)
+      ? JSON.stringify(fromConfig)
+      : (context.parameters as { columnWidths?: { raw?: string } }).columnWidths?.raw;
     if (raw == null || String(raw).trim() === "") return new Map<string, number>();
     try {
       const arr = JSON.parse(raw) as { id?: string; width?: number }[];
@@ -106,7 +122,7 @@ const Board = () => {
     } catch {
       return new Map<string, number>();
     }
-  }, [context.parameters]);
+  }, [context]);
 
   const visibleColumns = useMemo(() => {
     if (!columns) return [];

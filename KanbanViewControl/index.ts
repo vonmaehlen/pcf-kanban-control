@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cfgString } from "./lib/board-config";
 import { IInputs, IOutputs } from "./generated/ManifestTypes";
 import App from "./App";
 import { logBuildInfo } from "./version";
@@ -19,7 +20,9 @@ export class KanbanViewControl implements ComponentFramework.ReactControl<IInput
     public updateView(context: ComponentFramework.Context<IInputs>): React.ReactElement {
         return React.createElement(App, { 
             context,  
-            notificationPosition: context.parameters.notificationPosition?.raw
+            notificationPosition:
+                (cfgString(context, "notifications.position") as typeof context.parameters.notificationPosition.raw) ??
+                context.parameters.notificationPosition?.raw
         });
 
     }

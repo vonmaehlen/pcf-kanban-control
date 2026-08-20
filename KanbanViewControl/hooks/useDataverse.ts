@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react';
+import { cfgValue } from "../lib/board-config";
 import { IInputs } from '../generated/ManifestTypes';
 import { isNullOrEmpty, orderStages, chunkArray } from '../lib/utils';
 import { ViewEntity } from '../interfaces';
@@ -46,7 +47,11 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
                 `?$select=stagename,processstageid,stagecategory,_processid_value&$filter=primaryentitytypecode eq '${logicalName}'&$expand=processid($select=name,uniquename,statecode,uidata)`
             )
 
-            const filter = context.parameters.filteredBusinessProcessFlows?.raw ?? "";
+            // Config gewinnt pro Einstellung; sonst die alte Property.
+            const cfgExclude = cfgValue(context, "view.bpf.exclude");
+            const filter = Array.isArray(cfgExclude)
+                ? JSON.stringify(cfgExclude)
+                : context.parameters.filteredBusinessProcessFlows?.raw ?? "";
             let filterOutBusinessProcess: string[] | undefined;
             if (!isNullOrEmpty(filter)) {
                 try {
@@ -58,7 +63,10 @@ export const useDataverse = (context: ComponentFramework.Context<IInputs>, onCon
                 }
             }
 
-            const stepOrderConfigRaw = context.parameters.businessProcessFlowStepOrder?.raw ?? "";
+            const cfgStageOrder = cfgValue(context, "view.bpf.stageOrder");
+            const stepOrderConfigRaw = Array.isArray(cfgStageOrder)
+                ? JSON.stringify(cfgStageOrder)
+                : context.parameters.businessProcessFlowStepOrder?.raw ?? "";
             let stepOrderConfig: { id: string; order: number }[] | undefined;
 
             if (!isNullOrEmpty(stepOrderConfigRaw)) {

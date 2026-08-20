@@ -28,8 +28,11 @@ After adding the control, configure the following properties:
 
 All configurable properties come from the Control Manifest. Invalid JSON in text properties is reported in a **Configuration errors** banner above the board.
 
+> **New: one consolidated JSON.** The property **Config** replaces the individual properties in one JSON object — see [Config (all settings in one JSON)](#config-all-settings-in-one-json). The individual properties are **deprecated but still work**; a value in the Config wins per setting. `copy(window.kanbanViewControlConfigExport)` in the browser console generates the Config from your current settings.
+
 ### Table of contents
 
+- [Config (all settings in one JSON)](#config-all-settings-in-one-json)
 - [View & column selection](#view--column-selection)
   - [Default View By](#default-view-by)
   - [Filter out Business Process Flows](#filter-out-business-process-flows)
@@ -80,7 +83,118 @@ All configurable properties come from the Control Manifest. Invalid JSON in text
 
 ---
 
+## Config (all settings in one JSON)
+
+**Type:** Text (JSON object) · **Property:** `config`
+
+One JSON for the whole control instead of ~20 separate JSON properties. **All individual properties below still work** — they are deprecated, not removed. Resolution happens **per setting**: if the Config provides a value, it wins; otherwise the old property applies. So you can migrate step by step.
+
+The biggest win is `card.fields`: previously **13 properties**, each keyed by field name, so configuring one field meant editing up to ten different JSON blobs. Now everything about a field sits in one place.
+
+**Example:**
+
+```json
+{
+  "view":  { "default": "Priority - High", "bpf": { "exclude": ["Old Sales Process"] } },
+  "board": { "hideEmptyColumns": true, "fullWidth": true, "minColumnWidth": 280, "initialCardsVisible": 50 },
+  "card":  {
+    "hideColumnField": true,
+    "showOpenInNewTab": true,
+    "html": { "allowedTags": "p,br,b,i,u,a,ul,ol,li", "allowedAttributes": "href" },
+    "fields": {
+      "description":  { "html": true, "lineBreaks": true, "maxHeightPx": 160, "width": 100, "hideLabel": true },
+      "ownerid":      { "persona": true },
+      "createdby":    { "persona": "iconOnly" },
+      "estimatedvalue": { "displayName": { "de": "Betrag", "en": "Amount" } },
+      "statuscode":   { "hidden": true },
+      "budgetamount": { "visibleInStages": ["Develop", "Propose"] },
+      "donotemail":   { "highlight": { "color": "#D13438", "type": "right" } },
+      "prioritycode": { "background": [
+        { "optionValue": 1,     "color": "#FDE7E9" },
+        { "optionValue": [2,3], "color": "#FFF4CE" }
+      ] }
+    }
+  },
+  "filters": {
+    "quickFilters": ["statuscode", { "field": "ownerid", "inPopup": true }, "createdon"],
+    "sort": { "fields": ["createdon", "estimatedvalue"], "default": { "field": "createdon", "direction": "desc" } },
+    "presets": [ { "id": "open", "label": "Open", "filters": { "statecode": "eq:0" }, "default": true } ]
+  },
+  "notifications": { "position": "top-right" }
+}
+```
+
+### Generating the Config from your current settings
+
+You do not have to convert anything by hand:
+
+1. Open the board in the app (the version with Config support must be deployed).
+2. Open the browser console (F12).
+3. Run `copy(window.kanbanViewControlConfigExport)` — the equivalent JSON for **this board's** current properties is now in your clipboard.
+4. Paste it into the **Config** property and save.
+5. Verify the board behaves identically, then clear the old properties.
+
+The export contains only values that are actually set; defaults are left out.
+
+### Rules and robustness
+
+- **Per-setting precedence.** For field settings this is per *setting*, not per field: if any field in `card.fields` sets `hidden`, the Config owns `hidden` for all fields; the old `hiddenFieldsOnCard` no longer applies. Settings the Config never mentions keep coming from the old properties.
+- **A broken Config does not take the board down.** Invalid JSON → the whole Config is ignored and the old properties apply. An invalid *section* (e.g. `card.fields` is not an object) → only that section is dropped. Both appear in the **Configuration errors** banner.
+- **Order matters** inside `card.fields`: highlights and background rules are evaluated in the order the fields appear in the JSON (first match wins, as before).
+- **Values are validated** the same way as in the old properties (e.g. `width` 1–100, column widths 200–1200 px), invalid entries are skipped.
+
+### Property → Config path
+
+| Deprecated property | Config path |
+|---|---|
+| `defaultView` | `view.default` |
+| `hideViewBy` | `view.hide` |
+| `disableBusinessProcessFlows` | `view.bpf.disable` |
+| `filteredBusinessProcessFlows` | `view.bpf.exclude` |
+| `businessProcessFlowStepOrder` | `view.bpf.stageOrder` |
+| `hideEmptyColumns` | `board.hideEmptyColumns` |
+| `expandBoardToFullWidth` | `board.fullWidth` |
+| `minColumnWidth` | `board.minColumnWidth` |
+| `maxColumnWidth` | `board.maxColumnWidth` |
+| `initialCardsVisible` | `board.initialCardsVisible` |
+| `columnWidths` | `board.columnWidths` |
+| `allowCreateNew` | `board.allowCreateNew` |
+| `allowCardMove` | `board.allowCardMove` |
+| `cardMoveValidationFunction` | `board.cardMoveValidation.function` |
+| `cardMoveValidationScript` | `board.cardMoveValidation.script` |
+| `hideColumnFieldOnCard` | `card.hideColumnField` |
+| `showOpenInNewTabButton` | `card.showOpenInNewTab` |
+| `showCreateActivityButton` | `card.showCreateActivity` |
+| `createActivityEntityType` | `card.createActivityEntityType` |
+| `showSharePointFolderButton` | `card.showSharePointFolder` |
+| `showEmailAndPhoneAsLinks` | `card.showEmailAndPhoneAsLinks` |
+| `allowedHtmlTagsOnCard` | `card.html.allowedTags` |
+| `allowedHtmlAttributesOnCard` | `card.html.allowedAttributes` |
+| `hiddenFieldsOnCard` | `card.fields.<field>.hidden` |
+| `hideLabelForFieldsOnCard` | `card.fields.<field>.hideLabel` |
+| `fieldDisplayNamesOnCard` | `card.fields.<field>.displayName` |
+| `fieldWidthsOnCard` | `card.fields.<field>.width` |
+| `fieldMaxHeightOnCard` | `card.fields.<field>.maxHeightPx` |
+| `ellipsisFieldsOnCard` | `card.fields.<field>.ellipsis` |
+| `lineBreakFieldsOnCard` | `card.fields.<field>.lineBreaks` |
+| `htmlFieldsOnCard` | `card.fields.<field>.html` |
+| `lookupFieldsAsPersonaOnCard` | `card.fields.<field>.persona: true` |
+| `lookupFieldsPersonaIconOnlyOnCard` | `card.fields.<field>.persona: "iconOnly"` |
+| `fieldsVisiblePerStage` | `card.fields.<field>.visibleInStages` |
+| `booleanFieldHighlights` | `card.fields.<field>.highlight` |
+| `cardBackgroundColors` | `card.fields.<field>.background` |
+| `quickFilterFields` | `filters.quickFilters` |
+| `quickFilterFieldsInPopup` | `filters.quickFilters[].inPopup` |
+| `sortFields` | `filters.sort.fields` |
+| `defaultSort` | `filters.sort.default` |
+| `filterPresets` | `filters.presets` |
+| `notificationPosition` | `notifications.position` |
+
+---
+
 ## View & column selection
+
+> The properties in the following sections are **deprecated**. They still work, but new boards should use the [Config](#config-all-settings-in-one-json) property; the section headings document the semantics of each setting.
 
 ### Default View By
 
