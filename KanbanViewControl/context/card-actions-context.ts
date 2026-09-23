@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import { ViewItem } from "../interfaces";
+import { CardItem, ViewItem } from "../interfaces";
 import { IInputs } from "../generated/ManifestTypes";
 
 /**
@@ -25,6 +25,13 @@ export interface ICardActionsContext {
   openCreateActivityForm: (activityEntityName: string, parentEntityName: string, parentId: string, parentName?: string) => Promise<void>;
   showSharePointFolderButton: boolean;
   openSharePointFolderInNewTab: (entityName: string, id: string, recordDisplayName?: string | null) => Promise<void>;
+  /** Warnung fuer eine Karte (card.warning.function) oder undefined. Wechselt erst, wenn das Skript geladen ist. */
+  getCardWarning?: (item: CardItem, columnTitle: string | null) => CardWarning | undefined;
+}
+
+export interface CardWarning {
+  message: string;
+  color: string;
 }
 
 export const CardActionsContext = createContext<ICardActionsContext>(undefined!);

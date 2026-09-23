@@ -6,6 +6,7 @@ import { useContext } from "react";
 import toast from "react-hot-toast";
 import { moveCard } from "../lib/card-drag";
 import { getStrings } from "../lib/strings";
+import { resolveGlobalFunction } from "../lib/global-function";
 
 export type ColumnId = ColumnItem[][number]["id"];
 
@@ -34,27 +35,8 @@ export const useDnD = (columns: ColumnItem[]) => {
   const strings = getStrings(locale);
   const { updateRecord } = useDataverse(context);
 
-  const resolveValidationFunction = (): { fn: (args: CardMoveValidationArgs) => unknown; owner: unknown } | undefined => {
-    if (!cardMoveValidationFunctionName) return undefined;
-    const path = cardMoveValidationFunctionName.split(".").map((p) => p.trim()).filter(Boolean);
-    if (path.length === 0) return undefined;
-    let current: any = (window as any);
-    for (const part of path) {
-      if (current == null) return undefined;
-      current = current[part];
-    }
-    if (typeof current !== "function") return undefined;
-    const fn = current as (args: CardMoveValidationArgs) => unknown;
-    if (path.length === 1) {
-      return { fn, owner: undefined };
-    }
-    let owner: any = (window as any);
-    for (let i = 0; i < path.length - 1; i++) {
-      if (owner == null) return { fn, owner: undefined };
-      owner = owner[path[i]];
-    }
-    return { fn, owner };
-  };
+  const resolveValidationFunction = () =>
+    resolveGlobalFunction<CardMoveValidationArgs, unknown>(cardMoveValidationFunctionName);
 
   const runCardMoveValidator = async (
     args: CardMoveValidationArgs

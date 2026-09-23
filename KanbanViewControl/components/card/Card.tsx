@@ -80,6 +80,7 @@ const Card = ({ item, draggable = true }: IProps) => {
     openCreateActivityForm,
     showSharePointFolderButton,
     openSharePointFolderInNewTab,
+    getCardWarning,
   } = useContext(CardActionsContext);
   const strings = getStrings(locale);
   const {
@@ -206,9 +207,17 @@ const Card = ({ item, draggable = true }: IProps) => {
     [currentStageName, currentStageTitle]
   );
 
+  // Warnung aus card.warning.function, berechnet gegen die aktuelle Spalte der Karte
+  // (nach einem Move also sofort gegen die neue Phase).
+  const warning = useMemo(
+    () => getCardWarning?.(item, currentStageTitle || null),
+    [getCardWarning, item, currentStageTitle]
+  );
+
   const cardDetails = useMemo(() => {
     return Object.entries(item)?.filter((i) => {
       if (i[0] === "title" || i[0] === "tag" || i[0] === "id" || i[0] === "column") return false;
+      if (i[0].startsWith("__")) return false;
       if (hideColumnFieldOnCard && columnFieldKey && i[0] === columnFieldKey) return false;
       if (setMatchesField(hiddenFieldsOnCardSet, i[0])) return false;
       const allowedStages = fieldsVisiblePerStageMap.get(i[0]);
@@ -225,25 +234,28 @@ const Card = ({ item, draggable = true }: IProps) => {
 
   const isClickable = !draggable;
 
-  const hasAnyHighlight = highlights.left ?? highlights.right ?? highlights.cornerTopRight ?? highlights.cornerBottomRight ?? highlights.cornerTopLeft ?? highlights.cornerBottomLeft;
+  // Die Warnung belegt den linken Rand, sofern kein Feld-Highlight ihn schon nutzt.
+  const effectiveHighlights = warning && !highlights.left ? { ...highlights, left: warning.color } : highlights;
+
+  const hasAnyHighlight = effectiveHighlights.left ?? effectiveHighlights.right ?? effectiveHighlights.cornerTopRight ?? effectiveHighlights.cornerBottomRight ?? effectiveHighlights.cornerTopLeft ?? effectiveHighlights.cornerBottomLeft;
   const highlightClass =
-    (highlights.left ? " card-container--highlight-left" : "") +
-    (highlights.right ? " card-container--highlight-right" : "") +
-    (highlights.cornerTopRight ? " card-container--highlight-corner-top-right" : "") +
-    (highlights.cornerBottomRight ? " card-container--highlight-corner-bottom-right" : "") +
-    (highlights.cornerTopLeft ? " card-container--highlight-corner-top-left" : "") +
-    (highlights.cornerBottomLeft ? " card-container--highlight-corner-bottom-left" : "");
+    (effectiveHighlights.left ? " card-container--highlight-left" : "") +
+    (effectiveHighlights.right ? " card-container--highlight-right" : "") +
+    (effectiveHighlights.cornerTopRight ? " card-container--highlight-corner-top-right" : "") +
+    (effectiveHighlights.cornerBottomRight ? " card-container--highlight-corner-bottom-right" : "") +
+    (effectiveHighlights.cornerTopLeft ? " card-container--highlight-corner-top-left" : "") +
+    (effectiveHighlights.cornerBottomLeft ? " card-container--highlight-corner-bottom-left" : "");
   // Hintergrundfarbe als CSS-Variable, nicht als background-color: so bleibt der Hover-Effekt
   // (Overlay in .card-container--custom-bg:hover) erhalten, statt vom Inline-Style ueberschrieben.
   const backgroundStyle = backgroundColor ? { ["--card-bg" as string]: backgroundColor } : undefined;
   const highlightStyle = hasAnyHighlight
     ? {
-        ...(highlights.left && { ["--card-highlight-left" as string]: highlights.left }),
-        ...(highlights.right && { ["--card-highlight-right" as string]: highlights.right }),
-        ...(highlights.cornerTopRight && { ["--card-highlight-corner-top-right" as string]: highlights.cornerTopRight }),
-        ...(highlights.cornerBottomRight && { ["--card-highlight-corner-bottom-right" as string]: highlights.cornerBottomRight }),
-        ...(highlights.cornerTopLeft && { ["--card-highlight-corner-top-left" as string]: highlights.cornerTopLeft }),
-        ...(highlights.cornerBottomLeft && { ["--card-highlight-corner-bottom-left" as string]: highlights.cornerBottomLeft }),
+        ...(effectiveHighlights.left && { ["--card-highlight-left" as string]: effectiveHighlights.left }),
+        ...(effectiveHighlights.right && { ["--card-highlight-right" as string]: effectiveHighlights.right }),
+        ...(effectiveHighlights.cornerTopRight && { ["--card-highlight-corner-top-right" as string]: effectiveHighlights.cornerTopRight }),
+        ...(effectiveHighlights.cornerBottomRight && { ["--card-highlight-corner-bottom-right" as string]: effectiveHighlights.cornerBottomRight }),
+        ...(effectiveHighlights.cornerTopLeft && { ["--card-highlight-corner-top-left" as string]: effectiveHighlights.cornerTopLeft }),
+        ...(effectiveHighlights.cornerBottomLeft && { ["--card-highlight-corner-bottom-left" as string]: effectiveHighlights.cornerBottomLeft }),
       }
     : undefined;
   const containerStyle =
@@ -259,12 +271,12 @@ const Card = ({ item, draggable = true }: IProps) => {
       onKeyDown={isClickable ? onKeyDown : undefined}
       style={containerStyle}
     >
-      {(highlights.cornerTopRight ?? highlights.cornerBottomRight ?? highlights.cornerTopLeft ?? highlights.cornerBottomLeft) && (
+      {(effectiveHighlights.cornerTopRight ?? effectiveHighlights.cornerBottomRight ?? effectiveHighlights.cornerTopLeft ?? effectiveHighlights.cornerBottomLeft) && (
         <>
-          {highlights.cornerTopRight && <span className="card-corner-highlight card-corner-highlight--top-right" aria-hidden />}
-          {highlights.cornerBottomRight && <span className="card-corner-highlight card-corner-highlight--bottom-right" aria-hidden />}
-          {highlights.cornerTopLeft && <span className="card-corner-highlight card-corner-highlight--top-left" aria-hidden />}
-          {highlights.cornerBottomLeft && <span className="card-corner-highlight card-corner-highlight--bottom-left" aria-hidden />}
+          {effectiveHighlights.cornerTopRight && <span className="card-corner-highlight card-corner-highlight--top-right" aria-hidden />}
+          {effectiveHighlights.cornerBottomRight && <span className="card-corner-highlight card-corner-highlight--bottom-right" aria-hidden />}
+          {effectiveHighlights.cornerTopLeft && <span className="card-corner-highlight card-corner-highlight--top-left" aria-hidden />}
+          {effectiveHighlights.cornerBottomLeft && <span className="card-corner-highlight card-corner-highlight--bottom-left" aria-hidden />}
         </>
       )}
       <CardHeader>
@@ -370,6 +382,12 @@ const Card = ({ item, draggable = true }: IProps) => {
             );
           })}
         </CardDetailsList>
+        {warning && (
+          <div className="card-warning" style={{ ["--card-warning-color" as string]: warning.color }} title={warning.message}>
+            <span className="card-warning-icon" aria-hidden>⚠</span>
+            <Text variant="small" className="card-warning-text">{warning.message}</Text>
+          </div>
+        )}
       </CardBody>
     </div>
   );

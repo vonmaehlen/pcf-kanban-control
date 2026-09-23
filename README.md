@@ -13,6 +13,7 @@ This **PowerApps Component Framework (PCF)** control enables users to visualize 
 - Drag-and-drop functionality.
 - **Progressive loading**: Only a configurable number of cards per column are shown initially; more load when scrolling down (reduces DOM size and improves performance).
 - Lookup column support (including Persona-style display).
+- **Card warnings**: A global JavaScript function flags cards (e.g. missing required fields of the current stage) with a colored border and a message.
 - **Card background colors**: Color the whole card by a field value; Choice/Status/Yes-No columns are matched by their **numeric option id**, so the colors survive translations.
 - **Quick filter** dropdowns and **custom sort** fields (configurable).
 - **Date/time quick filters**: For DateTime and DateOnly fields, special filter options (Today, Last 7 days, Last 30 days, Custom range) with Fluent UI DatePicker.
@@ -829,6 +830,32 @@ Often used together with **Line break fields on card** to show multi-line text i
   {"logicalName":"internalnotes","maxHeightPx":160}
 ]
 ```
+
+---
+
+### Card warning function
+
+**Config only:** `card.warning` · `{ "function": "MyNamespace.Kanban.getCardWarning", "color": "#F7630C" }`
+
+Calls a **global JavaScript function** once per card and shows its result as a warning: a colored left border (unless a [field highlight](#field-highlights) already uses the left border) and a message line at the bottom of the card. Typical use: show which required fields of the card's current stage are still empty. The function usually lives in the same web resource as the [card move validation](#card-move-validation-function) – the control loads that script and recalculates the warnings once it is available. After a card is moved, the warning is evaluated against the new column right away.
+
+The function receives:
+
+```ts
+{
+  recordId: string;
+  entityName: string;
+  columnId: unknown;          // option id (OptionSet view) or stage name (BPF view)
+  columnTitle: string | null;
+  values: Record<string, unknown>; // raw values of all view columns:
+                                   // Choice/Yes-No -> option id (multi-select -> number[]),
+                                   // lookup -> GUID (lowercase), text/number/date as is, empty -> null
+}
+```
+
+Return `null`/`undefined` for no warning, a **string** (message, default color) or `{ message, color? }`. `color` defaults to `card.warning.color`, then `#F7630C`. Errors thrown by the function are logged to the console and the card shows no warning.
+
+Only columns that are part of the view appear in `values`. A field the function needs but that is not shown on the card can be loaded with `card.fields.<field>.hidden: true`. Keep the function fast and synchronous – it runs for every card on each render of that card.
 
 ---
 

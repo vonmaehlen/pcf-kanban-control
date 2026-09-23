@@ -22,7 +22,7 @@ npm run refreshTypes   # Regenerate ManifestTypes from ControlManifest.Input.xml
 **Deployment** (use the dotnet global tool version of `pac`, not the npm version):
 ```bash
 ~/.dotnet/tools/pac auth create --environment https://vonmaehlen.crm4.dynamics.com
-~/.dotnet/tools/pac pcf push --publisher-prefix nova
+~/.dotnet/tools/pac pcf push --publisher-prefix cre56   # deployed as cre56_novalogica.KanbanViewControl
 ```
 
 ## Architecture
@@ -80,6 +80,12 @@ Responsive filter bar above the board with inline dropdowns, a funnel button (ri
 - In the quick filter dropdown an active numeric value is displayed as the **matching option labels**, not as the expression: `quickFilterOptionLabelsById` (App, derived from the cards: `${field}OptionIdRaw` -> formatted label) maps ids to labels, `QuickFilters.renderFilterControl` marks those entries as selected. Only expressions that resolve to no loaded option are rendered symbolically (`= 4`) via `formatNumberFilterExpression`.
 - Empty display names from `fieldDisplayNamesOnCard` (and the hide-label config) apply to the **card only** — `quickFilterFieldsConfig` and `sortFieldsConfig` fall back to the column display name so filter and sort dropdowns are never unlabeled.
 - The `OptionIdRaw` suffix ends in `Raw` on purpose: raw keys are excluded from the precomputed card search text and are not rendered on cards. Sorting/column sums keep using `${field}Raw` and are unaffected.
+
+### Card warnings (`card.warning`, Config only)
+
+- `card.warning.function` names a global function (resolved via `lib/global-function.ts`, shared with the card move validation in `useDnD`). App builds `getCardWarning` and puts it into `CardActionsContext`; the resolver is recreated once the validation web resource has loaded (`validationScriptLoaded`), so cards recompute.
+- `filterRecords` stores raw values of all columns under `cardData.__values` (`lib/card-warning.ts` normalizes lookups to GUIDs, choices to option ids). Keys starting with `__` are never rendered (`Card.tsx` filter).
+- `Card.tsx` evaluates the warning against `item.column`, so it follows a moved card immediately. The warning takes the left border only if no field highlight uses it.
 
 ### Card background colors (`cardBackgroundColors`)
 

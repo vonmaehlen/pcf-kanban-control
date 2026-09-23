@@ -73,6 +73,7 @@ export interface BoardConfig {
     showEmailAndPhoneAsLinks?: boolean;
     html?: { allowedTags?: string; allowedAttributes?: string };
     fields?: Record<string, ConfigFieldSettings>;
+    warning?: CardWarningConfig;
   };
   filters?: {
     quickFilters?: ConfigQuickFilter[];
@@ -80,6 +81,17 @@ export interface BoardConfig {
     presets?: unknown;
   };
   notifications?: { position?: string };
+}
+
+/**
+ * Kartenwarnung: globale Funktion (aus der Card-Move-Validation-Web-Resource), die pro Karte
+ * aufgerufen wird und `null` (keine Warnung), einen Text oder `{ message, color? }` liefert.
+ * Typischer Einsatz: fehlende Pflichtfelder der aktuellen Phase sichtbar machen.
+ */
+export interface CardWarningConfig {
+  function?: string;
+  /** Standardfarbe fuer Rand und Text, wenn die Funktion keine eigene liefert. */
+  color?: string;
 }
 
 /** Property-Name der konsolidierten Konfiguration (fuer Fehlermeldungen). */
@@ -271,6 +283,8 @@ export function parseBoardConfig(
   if (doc.card != null && !card) sectionErrors.push("card");
   if (card) {
     const html = asObject(card.html);
+    const warning = asObject(card.warning);
+    if (card.warning != null && !warning) sectionErrors.push("card.warning");
     const fieldsRaw = asObject(card.fields);
     if (card.fields != null && !fieldsRaw) sectionErrors.push("card.fields");
     const fields: Record<string, ConfigFieldSettings> = {};
@@ -298,6 +312,14 @@ export function parseBoardConfig(
           }
         : {}),
       ...(Object.keys(fields).length > 0 ? { fields } : {}),
+      ...(warning && asTrimmedString(warning.function)
+        ? {
+            warning: {
+              function: asTrimmedString(warning.function),
+              ...(asTrimmedString(warning.color) ? { color: asTrimmedString(warning.color) } : {}),
+            },
+          }
+        : {}),
     };
   }
 

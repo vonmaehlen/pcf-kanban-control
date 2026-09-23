@@ -969,3 +969,27 @@ body {
   color: #666;
   font-family: 'Segoe UI', 'Segoe UI Web (West European)', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
 }
+
+/* Kartenwarnung (card.warning.function), z. B. fehlende Pflichtfelder der Phase */
+.card-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: var(--card-warning-color, #F7630C);
+  background: color-mix(in srgb, var(--card-warning-color, #F7630C) 10%, transparent);
+}
+
+.card-warning-icon {
+  flex: 0 0 auto;
+  font-size: 16px;
+  margin-top: 1px;
+}
+
+.card-warning-text {
+  color: inherit;
+  font-weight: 600;
+  white-space: normal;
+}

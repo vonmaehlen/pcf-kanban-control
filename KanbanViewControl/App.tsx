@@ -13,6 +13,9 @@ import { CardActionsContext } from "./context/card-actions-context";
 import { useNavigation } from "./hooks/useNavigation";
 import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, isOptionSetColumnDataType, toComparableDate, toComparableNumber, toOptionSetNumericIds, isDateInFilterRange, isNumberInFilterRange, isNumberFilterExpression, isOptionSetIdInNumberFilterRange, parseFieldDisplayNames } from "./lib/utils";
 import { unlocatedColumn, OPTION_ID_SUFFIX } from "./lib/constants";
+import { resolveGlobalFunction } from "./lib/global-function";
+import { CardWarningArgs, DEFAULT_CARD_WARNING_COLOR, toCardWarning, toWarningRawValue } from "./lib/card-warning";
+import { CardWarning } from "./context/card-actions-context";
 import {
   parseBoardConfig,
   buildConfigFromLegacyParameters,
@@ -24,7 +27,7 @@ import { getLocaleFromLanguageId, getStrings } from "./lib/strings";
 import { getClientUrl, loadWebResourceScript } from "./lib/load-validation-script";
 import { Spinner, SpinnerSize } from "@fluentui/react";
 import { IDropdownOption } from "@fluentui/react/lib/Dropdown";
-import { CardInfo } from "./interfaces";
+import { CardInfo, CardItem } from "./interfaces";
 
 const QUICK_FILTER_ALL_KEY = "__all__";
 const QUICK_FILTER_EMPTY_KEY = "__empty__";
@@ -321,14 +324,46 @@ const App = ({ context, notificationPosition }: IProps) => {
     return trimmed || undefined;
   }, [(context.parameters as { cardMoveValidationScript?: { raw?: string } }).cardMoveValidationScript?.raw]);
 
+  const [validationScriptLoaded, setValidationScriptLoaded] = useState(false);
+
   useEffect(() => {
     if (!cardMoveValidationScriptName) return;
     const clientUrl = getClientUrl(context);
     if (!clientUrl) return;
-    loadWebResourceScript(clientUrl, cardMoveValidationScriptName).catch(() => {
-      // Script load failure: validation will show "function not available" when user tries to move
-    });
+    loadWebResourceScript(clientUrl, cardMoveValidationScriptName)
+      .then(() => setValidationScriptLoaded(true))
+      .catch(() => {
+        // Script load failure: validation will show "function not available" when user tries to move
+      });
   }, [context, cardMoveValidationScriptName]);
+
+  // Kartenwarnung (card.warning.function): Die Funktion stammt meist aus derselben Web
+  // Resource wie die Move-Validierung. Der Resolver wechselt, sobald das Skript geladen
+  // ist, damit die Karten ihre Warnung neu berechnen.
+  const cardWarningFunctionName = configBoardEarly?.card?.warning?.function;
+  const cardWarningDefaultColor = configBoardEarly?.card?.warning?.color ?? DEFAULT_CARD_WARNING_COLOR;
+  const getCardWarning = useMemo(() => {
+    if (!cardWarningFunctionName) return undefined;
+    const entityName = context.parameters.dataset.getTargetEntityType();
+    return (item: CardItem, columnTitle: string | null): CardWarning | undefined => {
+      const resolved = resolveGlobalFunction<CardWarningArgs, unknown>(cardWarningFunctionName);
+      if (!resolved) return undefined;
+      try {
+        const args: CardWarningArgs = {
+          recordId: String(item.id),
+          entityName,
+          columnId: item.column ?? null,
+          columnTitle,
+          values: (item.__values as unknown as Record<string, unknown>) ?? {},
+        };
+        const result = resolved.owner != null ? resolved.fn.call(resolved.owner, args) : resolved.fn(args);
+        return toCardWarning(result, cardWarningDefaultColor);
+      } catch (e) {
+        console.error("card.warning.function failed", e);
+        return undefined;
+      }
+    };
+  }, [cardWarningFunctionName, cardWarningDefaultColor, validationScriptLoaded, context]);
 
   const reportConfigError = useCallback((property: string, message: string) => {
     const key = `${property}\n${message}`;
@@ -759,6 +794,9 @@ const App = ({ context, notificationPosition }: IProps) => {
       return Object.entries(dataset.records).map(([id, record]) => {
         // Mutierendes Zielobjekt statt {...acc}-Spread pro Spalte (vermeidet O(columns^2)).
         const cardData: Record<string, unknown> = { id };
+        // Rohwerte aller Spalten fuer card.warning.function (Choice -> Option-ID(s),
+        // Lookup -> GUID, leer -> null). Liegt unter "__values" und wird nie angezeigt.
+        const rawValues: Record<string, unknown> = {};
 
         columns.forEach((col, index) => {
           if (col.name === activeView.key) {
@@ -790,6 +828,10 @@ const App = ({ context, notificationPosition }: IProps) => {
             } else if (optionIds.length > 1) {
               cardData[`${col.name}${OPTION_ID_SUFFIX}`] = optionIds;
             }
+            rawValues[col.name] =
+              optionIds.length === 0 ? null : String(dataTypeOfCol).startsWith("MultiSelect") ? optionIds : optionIds[0];
+          } else {
+            rawValues[col.name] = toWarningRawValue(record.getValue(col.name));
           }
 
           const name = index === 0 ? "title" : col.name;
@@ -843,6 +885,7 @@ const App = ({ context, notificationPosition }: IProps) => {
           searchParts.push(getQuickFilterComparableValue(cardData[key]));
         }
         cardData.__search = searchParts.join(" ").toLowerCase();
+        cardData.__values = rawValues;
 
         return cardData;
       });
@@ -1160,6 +1203,7 @@ const App = ({ context, notificationPosition }: IProps) => {
       openCreateActivityForm,
       showSharePointFolderButton,
       openSharePointFolderInNewTab,
+      getCardWarning,
     }),
     [
       locale,
@@ -1173,6 +1217,7 @@ const App = ({ context, notificationPosition }: IProps) => {
       openCreateActivityForm,
       showSharePointFolderButton,
       openSharePointFolderInNewTab,
+      getCardWarning,
     ]
   );
 
