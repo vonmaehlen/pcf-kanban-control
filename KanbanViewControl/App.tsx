@@ -182,6 +182,45 @@ const App = ({ context, notificationPosition }: IProps) => {
   // (Initialisierung von Sortierung/Filtern). Parsen ist modulweit gecacht.
   const configBoardEarly = getBoardConfig(context);
 
+  // Deep-Link-Filter: generischer Filter aus der URL serverseitig auf das Board anwenden.
+  // Format:  ?filter=<attr>=<value>[;<attr>=<value>...]   (mehrere Bedingungen werden UND-verknuepft)
+  // Beispiele:  &filter=campaignid=<guid>  |  &filter=ownerid=<guid>  |  &filter=campaignid=<g>;ownerid=<u>
+  // Legacy:  &campaign=<guid> wird weiterhin als campaignid interpretiert.
+  // Kein Entity-Zwang: funktioniert fuer jede Ziel-Entitaet (Opportunity, Lead, ...).
+  const deepLinkFilterAppliedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkFilterAppliedRef.current) return;
+    try {
+      const href = typeof window !== "undefined" ? (window.location.href || "") : "";
+      const conditions: { attributeName: string; conditionOperator: number; value: string }[] = [];
+      const fm = href.match(/[?&#]filter=([^&#]+)/);
+      if (fm) {
+        const raw = decodeURIComponent(fm[1]);
+        for (const part of raw.split(";")) {
+          const eq = part.indexOf("=");
+          if (eq <= 0) continue;
+          const attr = part.slice(0, eq).trim().toLowerCase();
+          const value = part.slice(eq + 1).trim().replace(/[{}]/g, "");
+          if (attr && value) conditions.push({ attributeName: attr, conditionOperator: 0, value });
+        }
+      }
+      const cm = href.match(/[?&#]campaign=(\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?)/);
+      if (cm && !conditions.some((c) => c.attributeName === "campaignid")) {
+        conditions.push({ attributeName: "campaignid", conditionOperator: 0, value: cm[1].replace(/[{}]/g, "") });
+      }
+      if (!conditions.length) return;
+      const ds = context.parameters.dataset as typeof context.parameters.dataset & {
+        filtering?: { setFilter?: (f: unknown) => void };
+      };
+      if (!ds.filtering?.setFilter) return;
+      deepLinkFilterAppliedRef.current = true;
+      ds.filtering.setFilter({ conditions, filterOperator: 0 });
+      context.parameters.dataset.refresh();
+    } catch {
+      /* Deep-Link-Filter optional */
+    }
+  }, []);
+
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState<ViewItem | undefined>();
   const [columns, setColumns] = useState<ColumnItem[]>([]);
