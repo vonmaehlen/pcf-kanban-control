@@ -2,6 +2,19 @@ import * as React from "react";
 import { Dropdown, IDropdownOption } from "@fluentui/react/lib/Dropdown";
 import { dropdownStyles } from "./styles";
 
+/**
+ * Titelzeile: bei Mehrfachauswahl nur der erste Wert plus "+N" statt aller Werte
+ * hintereinander (sonst waechst das Feld unbegrenzt). Die vollstaendige Auswahl steht
+ * im Tooltip; zu lange Einzelwerte kuerzt das CSS mit Ellipse.
+ */
+const renderTitle = (selected?: IDropdownOption[]): JSX.Element | null => {
+  if (!selected || selected.length === 0) return null;
+  const all = selected.map((o) => o.text).join(", ");
+  const text =
+    selected.length > 1 ? `${selected[0].text} +${selected.length - 1}` : selected[0].text;
+  return <span title={all}>{text}</span>;
+};
+
 interface IPropsSingle {
   label: string;
   placeholder?: string;
@@ -31,7 +44,10 @@ interface IPropsMulti {
 type IProps = IPropsSingle | IPropsMulti;
 
 const KanbanDropdown = (props: IProps) => {
-  const { label, placeholder, options, multiSelect, dropdownWidth } = props;
+  const { label, placeholder, options, multiSelect } = props;
+  // "auto": Liste mindestens so breit wie das Feld, waechst aber mit langen Werten
+  // (Fluent-Default waere exakt Feldbreite -> lange Werte abgeschnitten).
+  const dropdownWidth = props.dropdownWidth ?? "auto";
   const styles =
     typeof dropdownWidth === "number"
       ? {
@@ -77,6 +93,7 @@ const KanbanDropdown = (props: IProps) => {
         selectedKeys={props.selectedKeys}
         onChange={onChange}
         dropdownWidth={dropdownWidth}
+        onRenderTitle={renderTitle}
       />
     );
   }
@@ -91,6 +108,7 @@ const KanbanDropdown = (props: IProps) => {
       options={options}
       onChange={onChange}
       dropdownWidth={dropdownWidth}
+      onRenderTitle={renderTitle}
     />
   );
 };

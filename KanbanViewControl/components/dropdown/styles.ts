@@ -17,6 +17,16 @@ export const dropdownStyles: Partial<IDropdownStyles> = {
     height: 34,
     boxSizing: 'border-box',
   },
+  /* Liste waechst mit langen Werten bis zu dieser Breite, darueber wird umbrochen statt abgeschnitten */
+  callout: {
+    maxWidth: 480,
+  },
+  dropdownOptionText: {
+    whiteSpace: 'normal',
+    overflow: 'visible',
+    textOverflow: 'clip',
+    overflowWrap: 'anywhere',
+  },
   label: {
       color: '#595959',
       textAlign: 'left',

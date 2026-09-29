@@ -693,11 +693,16 @@
   gap: 0;
 }
 
+/* Inline-Filter nicht beliebig breit werden lassen (lange Werte, Mehrfachauswahl) */
+.kanban-quick-filters-inline .kanban-dropdown {
+  max-width: 280px;
+}
+
 .kanban-quick-filters .kanban-dropdown .ms-Dropdown-title {
   min-width: 0;
   white-space: nowrap;
-  overflow: visible;
-  text-overflow: clip;
+  overflow: hidden;
+  text-overflow: ellipsis;
   /* Reserved 1px border prevents layout shift when another dropdown opens */
   border: 1px solid transparent;
   box-sizing: border-box;
