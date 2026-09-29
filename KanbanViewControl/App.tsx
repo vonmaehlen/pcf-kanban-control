@@ -1004,11 +1004,11 @@ const App = ({ context, notificationPosition }: IProps) => {
         if (cfg.isMultiselect) {
           const arr = Array.isArray(selected) ? selected : null;
           if (!arr || arr.length === 0) continue;
-          if (arr.includes(QUICK_FILTER_EMPTY_KEY)) {
-            if (cardVal !== "") return false;
-          } else if (!arr.includes(cardVal)) {
-            return false;
-          }
+          // Auswahl ist ODER-verknuepft: "(Leer)" ist ein Eintrag wie jeder andere und
+          // schliesst die uebrigen gewaehlten Werte nicht aus.
+          const matches =
+            cardVal === "" ? arr.includes(QUICK_FILTER_EMPTY_KEY) : arr.includes(cardVal);
+          if (!matches) return false;
         } else {
           if (selected == null || selected === "") continue;
           if (selected === QUICK_FILTER_EMPTY_KEY) {
