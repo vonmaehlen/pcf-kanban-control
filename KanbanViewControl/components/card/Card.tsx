@@ -8,6 +8,7 @@ import { CardDetails, CardDetailsList } from "./CardDetails";
 import { useMemo, useCallback, useRef, useState } from "react";
 import { CardActionsContext } from "../../context/card-actions-context";
 import { CardConfigContext } from "../../context/card-config-context";
+import { SelectionContext, isSelectionClick } from "../../context/selection-context";
 import { getStrings } from "../../lib/strings";
 import { useContext } from "react";
 import { Spinner, SpinnerSize } from "@fluentui/react";
@@ -101,6 +102,8 @@ const Card = ({ item, draggable = true }: IProps) => {
     fieldMaxHeightOnCardMap,
     fieldDisplayNamesOnCardMap,
   } = useContext(CardConfigContext);
+  const selection = useContext(SelectionContext);
+  const isSelected = selection.enabled && selection.selectedIds.has(item.id.toString());
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const [isSharePointLoading, setIsSharePointLoading] = useState(false);
   const [isCreatingActivity, setIsCreatingActivity] = useState(false);
@@ -126,9 +129,14 @@ const Card = ({ item, draggable = true }: IProps) => {
           return;
         }
       }
+      if (selection.enabled && isSelectionClick(e)) {
+        e.preventDefault();
+        selection.toggle(item.id.toString());
+        return;
+      }
       onCardClick();
     },
-    [draggable, onCardClick]
+    [draggable, onCardClick, selection, item.id]
   );
 
   const onKeyDown = useCallback(
@@ -263,7 +271,7 @@ const Card = ({ item, draggable = true }: IProps) => {
 
   return (
     <div
-      className={`card-container${draggable ? "" : " no-drag"}${highlightClass}${backgroundColor ? " card-container--custom-bg" : ""}`}
+      className={`card-container${draggable ? "" : " no-drag"}${highlightClass}${backgroundColor ? " card-container--custom-bg" : ""}${isSelected ? " card-container--selected" : ""}`}
       role={isClickable ? "button" : undefined}
       tabIndex={isClickable ? 0 : undefined}
       onMouseDown={isClickable ? onMouseDown : undefined}
@@ -280,6 +288,18 @@ const Card = ({ item, draggable = true }: IProps) => {
         </>
       )}
       <CardHeader>
+        {selection.enabled && (
+          <input
+            type="checkbox"
+            className="card-select-checkbox"
+            checked={isSelected}
+            aria-label={strings.cardSelect}
+            title={strings.cardSelect}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            onChange={() => selection.toggle(item.id.toString())}
+          />
+        )}
         <Text className="card-title" nowrap>
           {item?.title?.value}
         </Text>

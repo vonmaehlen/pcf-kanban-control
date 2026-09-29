@@ -993,3 +993,51 @@ body {
   font-weight: 600;
   white-space: normal;
 }
+
+/** Kartenauswahl (card.selection.enabled) **/
+.card-select-checkbox {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 3px -8px 0 0;
+  cursor: pointer;
+  accent-color: #0078d4;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.card-container:hover .card-select-checkbox,
+.card-select-checkbox:focus-visible,
+.card-select-checkbox:checked,
+.main-container--selecting .card-select-checkbox {
+  opacity: 1;
+}
+
+.card-container--selected,
+.card-container--selected:hover {
+  box-shadow: 0 0 0 2px #0078d4, 0px 4px 16px -2px rgba(0,0,0,0.18);
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #deecf9;
+  color: #004578;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.selection-bar-clear {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #0078d4;
+  font: inherit;
+  font-weight: 400;
+  cursor: pointer;
+  text-decoration: underline;
+}

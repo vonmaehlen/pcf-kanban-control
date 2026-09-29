@@ -10,6 +10,8 @@ import { useDataverse } from "./hooks/useDataverse";
 import { useCardConfig } from "./hooks/useCardConfig";
 import { CardConfigContext } from "./context/card-config-context";
 import { CardActionsContext } from "./context/card-actions-context";
+import { SelectionContext } from "./context/selection-context";
+import { useSelection } from "./hooks/useSelection";
 import { useNavigation } from "./hooks/useNavigation";
 import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, isOptionSetColumnDataType, toComparableDate, toComparableNumber, toOptionSetNumericIds, isDateInFilterRange, isNumberInFilterRange, isNumberFilterExpression, isOptionSetIdInNumberFilterRange, parseFieldDisplayNames } from "./lib/utils";
 import { unlocatedColumn, OPTION_ID_SUFFIX } from "./lib/constants";
@@ -1221,6 +1223,12 @@ const App = ({ context, notificationPosition }: IProps) => {
     ]
   );
 
+  // Kartenauswahl (card.selection.enabled, nur Config – die Legacy-Properties sind deprecated).
+  // Neues Laden des Datasets, Filter, Suche oder Preset heben die Auswahl auf.
+  const selectionEnabled = boardConfig?.card?.selection?.enabled === true;
+  const selectionResetKey = `${datasetRecordsKey}|${searchKeyword}|${JSON.stringify(quickFilterValues)}|${selectedFilterPresetId ?? ""}`;
+  const selection = useSelection(context, selectionEnabled, selectionResetKey);
+
   if (isLoading) {
     return <Loading label={getStrings(locale).loadingLabel} />;
   }
@@ -1272,6 +1280,7 @@ const App = ({ context, notificationPosition }: IProps) => {
     >
       <CardConfigContext.Provider value={cardConfig}>
       <CardActionsContext.Provider value={cardActions}>
+      <SelectionContext.Provider value={selection}>
       <div className="app-content-wrapper">
         {configErrors.length > 0 && !configErrorsDismissed && (
           <div className="config-errors-banner" role="alert">
@@ -1310,6 +1319,7 @@ const App = ({ context, notificationPosition }: IProps) => {
           duration: 5000,
         }}
       />
+      </SelectionContext.Provider>
       </CardActionsContext.Provider>
       </CardConfigContext.Provider>
     </BoardContext.Provider>

@@ -74,6 +74,7 @@ export interface BoardConfig {
     html?: { allowedTags?: string; allowedAttributes?: string };
     fields?: Record<string, ConfigFieldSettings>;
     warning?: CardWarningConfig;
+    selection?: { enabled?: boolean };
   };
   filters?: {
     quickFilters?: ConfigQuickFilter[];
@@ -303,6 +304,7 @@ export function parseBoardConfig(
       ...(asTrimmedString(card.createActivityEntityType) !== undefined ? { createActivityEntityType: asTrimmedString(card.createActivityEntityType) } : {}),
       ...(asBool(card.showSharePointFolder) !== undefined ? { showSharePointFolder: asBool(card.showSharePointFolder) } : {}),
       ...(asBool(card.showEmailAndPhoneAsLinks) !== undefined ? { showEmailAndPhoneAsLinks: asBool(card.showEmailAndPhoneAsLinks) } : {}),
+      ...(asBool(asObject(card.selection)?.enabled) !== undefined ? { selection: { enabled: asBool(asObject(card.selection)?.enabled) } } : {}),
       ...(html
         ? {
             html: {

@@ -859,6 +859,16 @@ Only columns that are part of the view appear in `values`. A field the function 
 
 ---
 
+### Card selection
+
+**Config only:** `card.selection` · `{ "enabled": true }` (default: off)
+
+Lets users select cards so that commands in the view's command bar can act on them, e.g. a "Merge" or "Assign" button. A checkbox appears at the top left of a card on hover (and on every card while at least one is selected); **Ctrl+click** (Windows) or **Cmd+click** (macOS) on a card toggles it as well. A plain click still opens the record. Selected cards get a blue outline, and a bar above the board shows the count with "Clear selection". Selection works across columns; drag & drop still moves only the dragged card.
+
+The selection is reported to Dynamics with `dataset.setSelectedRecordIds`, so the command bar sees it like a grid selection: `SelectedControlSelectedItemIds` and selection-count enable rules work unchanged. It is cleared whenever the dataset reloads or quick filters, search or the filter preset change – otherwise hidden cards would stay selected.
+
+---
+
 ## Security (HTML on cards)
 
 Content from **HTML fields on card** is sanitized with [DOMPurify](https://github.com/cure53/DOMPurify) before rendering. Only tags and attributes from **Allowed HTML tags on card** and **Allowed HTML attributes on card** are kept; scripts, event handlers (e.g. `onerror`, `onclick`) and unsafe markup are removed. This reduces the risk of Stored XSS.

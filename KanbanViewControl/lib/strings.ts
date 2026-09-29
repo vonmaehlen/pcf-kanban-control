@@ -77,6 +77,9 @@ export interface Strings {
   cardActionCreateActivity: string;
   cardActionOpenSharePoint: string;
   cardActionOpenInNewTab: string;
+  cardSelect: string;
+  selectionCount: (count: number) => string;
+  selectionClear: string;
 
   // Card field links (aria-label)
   cardAriaEmail: (value: string) => string;
@@ -148,6 +151,9 @@ const en: Strings = {
   cardActionCreateActivity: "Create activity",
   cardActionOpenSharePoint: "Open SharePoint folder",
   cardActionOpenInNewTab: "Open in new tab",
+  cardSelect: "Select (Ctrl/Cmd+click)",
+  selectionCount: (count) => `${count} selected`,
+  selectionClear: "Clear selection",
 
   cardAriaEmail: (value) => `Email: ${value}`,
   cardAriaPhone: (value) => `Call: ${value}`,
@@ -218,6 +224,9 @@ const de: Strings = {
   cardActionCreateActivity: "Aktivität anlegen",
   cardActionOpenSharePoint: "SharePoint-Ordner öffnen",
   cardActionOpenInNewTab: "In neuem Tab öffnen",
+  cardSelect: "Auswählen (Strg/Cmd+Klick)",
+  selectionCount: (count) => `${count} ausgewählt`,
+  selectionClear: "Auswahl aufheben",
 
   cardAriaEmail: (value) => `E-Mail: ${value}`,
   cardAriaPhone: (value) => `Anrufen: ${value}`,

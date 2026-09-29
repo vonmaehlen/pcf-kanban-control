@@ -8,6 +8,7 @@ import {
   ResponderProvided,
 } from "@hello-pangea/dnd";
 import { BoardContext } from "../../context/board-context";
+import { SelectionContext } from "../../context/selection-context";
 import { useDnD } from "../../hooks/useDnD";
 import { pluralizedLogicalNames, hasActiveFilters } from "../../lib/utils";
 import { getStrings } from "../../lib/strings";
@@ -16,6 +17,8 @@ const Board = () => {
   const { locale, context, columns, selectedEntity, activeView, draggingRef, quickFilterValues, searchKeyword, selectedFilterPresetId } =
     useContext(BoardContext);
   const strings = getStrings(locale);
+  const selection = useContext(SelectionContext);
+  const selectedCount = selection.selectedIds.size;
   const filtersActive = hasActiveFilters(quickFilterValues, searchKeyword, selectedFilterPresetId);
   const { onDragEnd } = useDnD(columns);
 
@@ -139,9 +142,17 @@ const Board = () => {
   ));
 
   return (
-    <div className="main-container">
+    <div className={`main-container${selectedCount > 0 ? " main-container--selecting" : ""}`}>
       <QuickFilters />
       {!hideViews && <CommandBar />}
+      {selectedCount > 0 && (
+        <div className="selection-bar" role="status">
+          <span>{strings.selectionCount(selectedCount)}</span>
+          <button type="button" className="selection-bar-clear" onClick={selection.clear}>
+            {strings.selectionClear}
+          </button>
+        </div>
+      )}
       <div className="kanban-container">
         <div
           className={`columns-wrapper${expandBoardToFullWidth ? " columns-wrapper--full-width" : ""}`}

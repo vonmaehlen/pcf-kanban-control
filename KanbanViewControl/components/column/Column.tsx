@@ -9,6 +9,7 @@ import { isNullOrEmpty } from "../../lib/utils";
 import NoResults from "../container/no-results";
 import { getItemStyle, getListStyle } from "../../lib/card-drag";
 import { BoardContext } from "../../context/board-context";
+import { SelectionContext, isSelectionClick } from "../../context/selection-context";
 import { getStrings } from "../../lib/strings";
 import {
   INITIAL_CARDS_VISIBLE,
@@ -25,6 +26,7 @@ function parseInitialCardsVisible(raw: unknown): number {
 
 const Column = ({ column, widthPx }: { column: ColumnItem; widthPx?: number }) => {
   const { locale, context, draggingRef, openFormWithLoading } = useContext(BoardContext);
+  const selection = useContext(SelectionContext);
   const strings = getStrings(locale);
   const allowCardMove =
     cfgBool(context, "board.allowCardMove") ??
@@ -62,12 +64,16 @@ const Column = ({ column, widthPx }: { column: ColumnItem; widthPx?: number }) =
   );
 
   const handleCardWrapperClick = useCallback(
-    (itemId: string | number) => () => {
-      if (!draggingRef.current) {
-        openFormWithLoading(context.parameters.dataset.getTargetEntityType(), String(itemId));
+    (itemId: string | number) => (e: React.MouseEvent) => {
+      if (draggingRef.current) return;
+      if (selection.enabled && isSelectionClick(e)) {
+        e.preventDefault();
+        selection.toggle(String(itemId));
+        return;
       }
+      openFormWithLoading(context.parameters.dataset.getTargetEntityType(), String(itemId));
     },
-    [context.parameters.dataset, draggingRef, openFormWithLoading]
+    [context.parameters.dataset, draggingRef, openFormWithLoading, selection]
   );
 
   if (!allowCardMove) {
