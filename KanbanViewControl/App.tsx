@@ -17,6 +17,7 @@ import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumber
 import { unlocatedColumn, OPTION_ID_SUFFIX } from "./lib/constants";
 import { resolveGlobalFunction } from "./lib/global-function";
 import { CardWarningArgs, DEFAULT_CARD_WARNING_COLOR, toCardWarning, toWarningRawValue } from "./lib/card-warning";
+import { resolveFormId } from "./lib/form-id";
 import { CardWarning } from "./context/card-actions-context";
 import {
   parseBoardConfig,
@@ -769,17 +770,31 @@ const App = ({ context, notificationPosition }: IProps) => {
     }
   }, [quickFiltersStorageKey, quickFilterValues, searchKeyword, sortByField, sortDirection, selectedFilterPresetId]);
 
+  // card.openForm.formIdByField: Formular nach Feldwert des Datensatzes. Gilt nur fuer
+  // Datensaetze der View-Entitaet (nicht fuer Lookups, die aus der Karte geoeffnet werden).
+  const formIdByField = boardConfig?.card?.openForm?.formIdByField;
+  const formIdForRecord = useCallback((entityName: string, id?: string): string | undefined => {
+    if (!formIdByField || !id || entityName !== dataset.getTargetEntityType()) return undefined;
+    let value: unknown = undefined;
+    try {
+      value = dataset.records[id]?.getValue(formIdByField.field);
+    } catch {
+      // Feld nicht in der View geladen -> nur "default" kann greifen
+    }
+    return resolveFormId(formIdByField, value);
+  }, [formIdByField, dataset]);
+
   const openFormWithLoading = useCallback(async (entityName: string, id?: string) => {
     if (openingRef.current) return;
     openingRef.current = true;
     setIsOpeningEntity(true);
     try {
-      await openForm(entityName, id);
+      await openForm(entityName, id, formIdForRecord(entityName, id));
     } finally {
       openingRef.current = false;
       setIsOpeningEntity(false);
     }
-  }, [openForm]);
+  }, [openForm, formIdForRecord]);
 
   const filterRecords = useCallback(
     (activeView: ViewItem, quickFilterFieldsList: string[]) => {

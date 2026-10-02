@@ -1,5 +1,6 @@
 import * as React from "react";
-import { cfgBool } from "../../lib/board-config";
+import { cfgBool, cfgValue } from "../../lib/board-config";
+import { parseFormIdByField, resolveFormId } from "../../lib/form-id";
 import { Text } from "@fluentui/react/lib/Text";
 import IconButton from "../button/IconButton";
 import { ColumnItem } from "../../interfaces";
@@ -21,7 +22,12 @@ const ColumnHeader = ({ column }: IProps) => {
     (context.parameters as { allowCreateNew?: { raw?: boolean } }).allowCreateNew?.raw !== false;
 
   const onAddNewRecord = async (column: string) => {
-    await createNewRecord(activeView?.key as string, column);
+    const field = activeView?.key as string;
+    // card.openForm.formIdByField: Ist die Spalte das konfigurierte Feld, entscheidet ihr Wert;
+    // sonst greift nur "default".
+    const formIdByField = parseFormIdByField(cfgValue(context, "card.openForm.formIdByField"));
+    const value = formIdByField && field === formIdByField.field ? column : undefined;
+    await createNewRecord(field, column, resolveFormId(formIdByField, value));
     context.parameters.dataset.refresh();
   };
 

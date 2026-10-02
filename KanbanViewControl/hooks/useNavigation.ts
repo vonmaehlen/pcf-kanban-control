@@ -143,11 +143,12 @@ async function ensureSharePointFolderExists(absoluteUrl: string): Promise<void> 
 export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
     const { dataset } = context.parameters;
 
-    const openForm = useCallback(async (entityName: string, id?: string): Promise<void> => {
+    const openForm = useCallback(async (entityName: string, id?: string, formId?: string): Promise<void> => {
         const pageInput = {
             entityName: entityName,
             entityId: id,
-            pageType: "entityrecord"
+            pageType: "entityrecord",
+            ...(formId ? { formId } : {}),
         }
 
         //@ts-expect-error - Method does not exist in PCF SDK however it should be use to maintain control state alive
@@ -166,11 +167,12 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
         }
     }, [context]);
 
-    const createNewRecord = useCallback(async (field?: string, column?: string): Promise<void> => {
+    const createNewRecord = useCallback(async (field?: string, column?: string, formId?: string): Promise<void> => {
         const pageInput = {
             entityName: dataset.getTargetEntityType(),
             pageType: "entityrecord",
-            data : {}
+            data : {},
+            ...(formId ? { formId } : {}),
         }
 
         if(!isNullOrEmpty(field) && !isNullOrEmpty(column)) {
