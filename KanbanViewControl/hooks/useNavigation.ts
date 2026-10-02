@@ -156,10 +156,10 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
     }, [context]);
 
     /** Opens the entity record in a new browser tab (_blank). */
-    const openEntityInNewTab = useCallback((entityName: string, id: string): void => {
+    const openEntityInNewTab = useCallback((entityName: string, id: string, formId?: string): void => {
         const baseUrl = getClientUrl();
         if (!baseUrl || !id) return;
-        const url = `${baseUrl}/main.aspx?pagetype=entityrecord&etn=${encodeURIComponent(entityName)}&id=${encodeURIComponent(id)}`;
+        const url = `${baseUrl}/main.aspx?pagetype=entityrecord&etn=${encodeURIComponent(entityName)}&id=${encodeURIComponent(id)}${formId ? `&formid=${encodeURIComponent(formId)}` : ""}`;
         if (typeof window !== "undefined" && window.open) {
             window.open(url, "_blank", "noopener,noreferrer");
         } else {

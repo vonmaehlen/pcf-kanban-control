@@ -407,7 +407,7 @@ const App = ({ context, notificationPosition }: IProps) => {
   }, [context]);
 
   const cardConfig = useCardConfig(context, locale, reportConfigError, clearConfigError, boardConfig);
-  const { openForm, openEntityInNewTab, openCreateActivityForm, openSharePointFolderInNewTab } = useNavigation(context);
+  const { openForm, openEntityInNewTab: openEntityInNewTabRaw, openCreateActivityForm, openSharePointFolderInNewTab } = useNavigation(context);
   const { dataset } = context.parameters;
   const showOpenInNewTabButton =
     boardConfig?.card?.showOpenInNewTab ??
@@ -771,7 +771,9 @@ const App = ({ context, notificationPosition }: IProps) => {
   }, [quickFiltersStorageKey, quickFilterValues, searchKeyword, sortByField, sortDirection, selectedFilterPresetId]);
 
   // card.openForm.formIdByField: Formular nach Feldwert des Datensatzes. Gilt nur fuer
-  // Datensaetze der View-Entitaet (nicht fuer Lookups, die aus der Karte geoeffnet werden).
+  // Datensaetze der View-Entitaet. Lookups auf dieselbe Entitaet nutzen den Wert des
+  // referenzierten Datensatzes nur, wenn dieser auf dem Board liegt, sonst gilt `default`.
+  // Lookups auf andere Entitaeten oeffnen unveraendert.
   const formIdByField = boardConfig?.card?.openForm?.formIdByField;
   const formIdForRecord = useCallback((entityName: string, id?: string): string | undefined => {
     if (!formIdByField || !id || entityName !== dataset.getTargetEntityType()) return undefined;
@@ -783,6 +785,10 @@ const App = ({ context, notificationPosition }: IProps) => {
     }
     return resolveFormId(formIdByField, value);
   }, [formIdByField, dataset]);
+
+  const openEntityInNewTab = useCallback((entityName: string, id: string) => {
+    openEntityInNewTabRaw(entityName, id, formIdForRecord(entityName, id));
+  }, [openEntityInNewTabRaw, formIdForRecord]);
 
   const openFormWithLoading = useCallback(async (entityName: string, id?: string) => {
     if (openingRef.current) return;

@@ -10,7 +10,7 @@
  *     "default": "<form id Retail>"
  *   } } }
  *
- * `map` ordnet Feldwerten (Option-ID, Ja/Nein als "true"/"false", Lookup-GUID, Text) eine
+ * `map` ordnet Feldwerten (Option-ID, Ja/Nein als "1"/"0", Lookup-GUID, Text) eine
  * Formular-ID zu. `default` (optional) gilt, wenn der Wert fehlt oder nicht in `map` steht.
  * Ohne Treffer und ohne `default` wird ohne formId geoeffnet – Dynamics waehlt das Formular.
  */
@@ -58,12 +58,12 @@ function normalizeKey(key: string): string {
 
 /**
  * Rohwert aus dataset record.getValue() bzw. dem Spaltenwert beim Anlegen als Map-Schluessel:
- * Zahl/Text -> String, Boolean -> "true"/"false", Lookup ({ id: { guid } } oder { id }) -> GUID.
+ * Zahl/Text -> String, Boolean -> "1"/"0" (wie Ja/Nein-Spaltenwerte), Lookup ({ id: { guid } } oder { id }) -> GUID.
  */
 export function formIdKey(value: unknown): string | undefined {
   if (value == null) return undefined;
   if (typeof value === "number") return Number.isFinite(value) ? String(value) : undefined;
-  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "boolean") return value ? "1" : "0";
   if (typeof value === "string") return value.trim() === "" ? undefined : normalizeKey(value);
   if (Array.isArray(value)) return value.length > 0 ? formIdKey(value[0]) : undefined;
   if (typeof value === "object" && "id" in (value as object)) {

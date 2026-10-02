@@ -31,7 +31,9 @@ check("parse: nur default", parseFormIdByField({ field: "x", default: RETAIL }),
 
 check("key: Zahl", formIdKey(2), "2");
 check("key: Text", formIdKey(" 2 "), "2");
-check("key: Boolean", formIdKey(true), "true");
+check("key: Boolean true", formIdKey(true), "1");
+check("key: Boolean false", formIdKey(false), "0");
+check("key: Spaltenschluessel 1/0", [formIdKey("1"), formIdKey("0")], ["1", "0"]);
 check("key: Lookup PCF", formIdKey({ id: { guid: "{CCCCCCCC-0000-0000-0000-000000000003}" }, name: "x" }), "cccccccc-0000-0000-0000-000000000003");
 check("key: Lookup id", formIdKey({ id: "CCCCCCCC-0000-0000-0000-000000000003" }), "cccccccc-0000-0000-0000-000000000003");
 check("key: leer", formIdKey(""), undefined);
@@ -48,6 +50,12 @@ const withDefault = parseFormIdByField({ field: "cre56_type", map: { "1": CB }, 
 check("resolve: default bei fehlendem Wert", resolveFormId(withDefault, null), RETAIL);
 check("resolve: default bei unbekanntem Wert", resolveFormId(withDefault, 2), RETAIL);
 check("resolve: Treffer schlaegt default", resolveFormId(withDefault, 1), CB);
+
+const yesNo = parseFormIdByField({ field: "x", map: { "1": CB, "0": RETAIL } });
+check("resolve: Ja (true)", resolveFormId(yesNo, true), CB);
+check("resolve: Nein (false)", resolveFormId(yesNo, false), RETAIL);
+check("resolve: Ja als Spaltenschluessel 1", resolveFormId(yesNo, "1"), CB);
+check("resolve: Nein als Spaltenschluessel 0", resolveFormId(yesNo, "0"), RETAIL);
 
 console.log(failed === 0 ? "\nALLE PRÜFUNGEN BESTANDEN" : `\n${failed} PRÜFUNG(EN) FEHLGESCHLAGEN`);
 process.exit(failed === 0 ? 0 : 1);

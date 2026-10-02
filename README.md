@@ -873,12 +873,12 @@ The selection is reported to Dynamics with `dataset.setSelectedRecordIds`, so th
 
 **Config only:** `card.openForm.formIdByField` · `{ "field": "cre56_type", "map": { "1": "<form id>", "2": "<form id>" }, "default": "<form id>" }`
 
-Opens a card (and the record created with "+ New") in the main form that matches a field value of the record, e.g. one form per opportunity type. `map` keys are the raw values: option id for Choice/Status, `"true"`/`"false"` for Yes/No, the GUID for lookups, the text for text fields. `default` (optional) is used when the value is empty or not in `map`. Without a match and without `default` the form is not set and Dynamics picks it as before.
+Opens a card (and the record created with "+ New") in the main form that matches a field value of the record, e.g. one form per opportunity type. `map` keys are the raw values: option id for Choice/Status, `"1"` (Yes) / `"0"` (No) for Yes/No, the GUID for lookups, the text for text fields. `default` (optional) is used when the value is empty or not in `map`. Without a match and without `default` the form is not set and Dynamics picks it as before.
 
-- Applies to records of the view's entity only: card clicks, lookups that point to the same entity and BPF drops. Other lookups open as before.
+- Applies to records of the view's entity only: card clicks, lookups that point to the same entity and BPF drops, and the card's "open in new tab" button (the form id is appended as `&formid=`). A lookup to the same entity uses the value of the referenced record only if that record is on the board, otherwise `default` applies. Lookups to other entities open as before.
 - The field must be part of the view; hide it on the card with `card.fields.<field>.hidden: true`.
 - "+ New" knows the field value only when the board is grouped by that field (the column value is used); otherwise only `default` applies.
-- Invalid entries (no field, no valid GUID) are ignored and reported in the configuration error banner.
+- Invalid single `map` entries (no valid GUID) are ignored silently. The option is reported in the configuration error banner only if no field or no valid form id (neither in `map` nor `default`) remains.
 
 ---
 
