@@ -1,5 +1,6 @@
 import { IInputs } from "../generated/ManifestTypes";
 import { resolveLocalizedDisplayName } from "./utils";
+import { FormIdByFieldConfig, parseFormIdByField } from "./form-id";
 
 /**
  * Konsolidierte Konfiguration (Property "config", Inline-JSON).
@@ -75,6 +76,8 @@ export interface BoardConfig {
     fields?: Record<string, ConfigFieldSettings>;
     warning?: CardWarningConfig;
     selection?: { enabled?: boolean };
+    /** Formularwahl beim Oeffnen/Anlegen nach Feldwert (siehe lib/form-id.ts). */
+    openForm?: { formIdByField?: FormIdByFieldConfig };
   };
   filters?: {
     quickFilters?: ConfigQuickFilter[];
@@ -288,6 +291,10 @@ export function parseBoardConfig(
     if (card.warning != null && !warning) sectionErrors.push("card.warning");
     const fieldsRaw = asObject(card.fields);
     if (card.fields != null && !fieldsRaw) sectionErrors.push("card.fields");
+    const openForm = asObject(card.openForm);
+    if (card.openForm != null && !openForm) sectionErrors.push("card.openForm");
+    const formIdByField = parseFormIdByField(openForm?.formIdByField);
+    if (openForm?.formIdByField != null && !formIdByField) sectionErrors.push("card.openForm.formIdByField");
     const fields: Record<string, ConfigFieldSettings> = {};
     if (fieldsRaw) {
       for (const [name, value] of Object.entries(fieldsRaw)) {
@@ -305,6 +312,7 @@ export function parseBoardConfig(
       ...(asBool(card.showSharePointFolder) !== undefined ? { showSharePointFolder: asBool(card.showSharePointFolder) } : {}),
       ...(asBool(card.showEmailAndPhoneAsLinks) !== undefined ? { showEmailAndPhoneAsLinks: asBool(card.showEmailAndPhoneAsLinks) } : {}),
       ...(asBool(asObject(card.selection)?.enabled) !== undefined ? { selection: { enabled: asBool(asObject(card.selection)?.enabled) } } : {}),
+      ...(formIdByField ? { openForm: { formIdByField } } : {}),
       ...(html
         ? {
             html: {
