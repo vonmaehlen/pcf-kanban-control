@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.37";
+export const CONTROL_VERSION = "1.7.38";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 35;
+export const BUILD_NUMBER = 36;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "Quick-Filter: Liste wächst mit langen Werten, Mehrfachauswahl kompakt (+N) und max. 280px";
+export const BUILD_DESCRIPTION = "card.openForm.formIdByField: Formular nach Feldwert beim Öffnen und Anlegen";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;

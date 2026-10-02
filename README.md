@@ -869,6 +869,19 @@ The selection is reported to Dynamics with `dataset.setSelectedRecordIds`, so th
 
 ---
 
+### Open records in a specific form
+
+**Config only:** `card.openForm.formIdByField` · `{ "field": "cre56_type", "map": { "1": "<form id>", "2": "<form id>" }, "default": "<form id>" }`
+
+Opens a card (and the record created with "+ New") in the main form that matches a field value of the record, e.g. one form per opportunity type. `map` keys are the raw values: option id for Choice/Status, `"true"`/`"false"` for Yes/No, the GUID for lookups, the text for text fields. `default` (optional) is used when the value is empty or not in `map`. Without a match and without `default` the form is not set and Dynamics picks it as before.
+
+- Applies to records of the view's entity only: card clicks, lookups that point to the same entity and BPF drops. Other lookups open as before.
+- The field must be part of the view; hide it on the card with `card.fields.<field>.hidden: true`.
+- "+ New" knows the field value only when the board is grouped by that field (the column value is used); otherwise only `default` applies.
+- Invalid entries (no field, no valid GUID) are ignored and reported in the configuration error banner.
+
+---
+
 ## Security (HTML on cards)
 
 Content from **HTML fields on card** is sanitized with [DOMPurify](https://github.com/cure53/DOMPurify) before rendering. Only tags and attributes from **Allowed HTML tags on card** and **Allowed HTML attributes on card** are kept; scripts, event handlers (e.g. `onerror`, `onclick`) and unsafe markup are removed. This reduces the risk of Stored XSS.
