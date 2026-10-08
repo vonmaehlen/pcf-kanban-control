@@ -18,6 +18,7 @@ import { unlocatedColumn, OPTION_ID_SUFFIX } from "./lib/constants";
 import { resolveGlobalFunction } from "./lib/global-function";
 import { CardWarningArgs, DEFAULT_CARD_WARNING_COLOR, toCardWarning, toWarningRawValue } from "./lib/card-warning";
 import { resolveFormId } from "./lib/form-id";
+import { cardValuesEqual } from "./lib/card-equality";
 import { CardWarning } from "./context/card-actions-context";
 import {
   parseBoardConfig,
@@ -163,6 +164,18 @@ function parseQuickFilterFieldsRaw(
     }
     return trimmed.split(",").map((s) => s.trim()).filter(Boolean);
   }
+}
+
+/**
+ * Liefert eine referenzstabile Funktion, die immer die zuletzt gerenderte Implementierung
+ * aufruft. Damit haengen Karten-Callbacks nicht an der Identitaet des PCF-Context-Objekts
+ * (die Plattform kann bei jedem updateView ein neues Objekt uebergeben, z. B. bei
+ * Container-Resize). Ohne das rendert jede Karte bei jedem updateView neu.
+ */
+function useStableCallback<T extends (...args: never[]) => unknown>(fn: T): T {
+  const ref = useRef(fn);
+  ref.current = fn;
+  return useCallback(((...args: Parameters<T>) => ref.current(...args)) as T, []);
 }
 
 interface IProps {
@@ -345,9 +358,10 @@ const App = ({ context, notificationPosition }: IProps) => {
   // ist, damit die Karten ihre Warnung neu berechnen.
   const cardWarningFunctionName = configBoardEarly?.card?.warning?.function;
   const cardWarningDefaultColor = configBoardEarly?.card?.warning?.color ?? DEFAULT_CARD_WARNING_COLOR;
+  const cardWarningEntityName = context.parameters.dataset.getTargetEntityType();
   const getCardWarning = useMemo(() => {
     if (!cardWarningFunctionName) return undefined;
-    const entityName = context.parameters.dataset.getTargetEntityType();
+    const entityName = cardWarningEntityName;
     return (item: CardItem, columnTitle: string | null): CardWarning | undefined => {
       const resolved = resolveGlobalFunction<CardWarningArgs, unknown>(cardWarningFunctionName);
       if (!resolved) return undefined;
@@ -366,7 +380,7 @@ const App = ({ context, notificationPosition }: IProps) => {
         return undefined;
       }
     };
-  }, [cardWarningFunctionName, cardWarningDefaultColor, validationScriptLoaded, context]);
+  }, [cardWarningFunctionName, cardWarningDefaultColor, validationScriptLoaded, cardWarningEntityName]);
 
   const reportConfigError = useCallback((property: string, message: string) => {
     const key = `${property}\n${message}`;
@@ -695,9 +709,12 @@ const App = ({ context, notificationPosition }: IProps) => {
   ]);
 
   // Load current user display name (for {{currentUser}} placeholder in filter presets)
+  // Abhaengig von der User-ID (String), nicht vom Context-Objekt: sonst ginge bei jedem
+  // updateView mit neuer Context-Identitaet ein systemuser-Request raus.
+  const currentUserId = (context as { userSettings?: { userId?: string } }).userSettings?.userId;
+  const hasWebApi = !!context.webAPI;
   useEffect(() => {
-    const userSettings = (context as { userSettings?: { userId?: string } }).userSettings;
-    const userId = userSettings?.userId;
+    const userId = currentUserId;
     if (!userId || !context.webAPI) return;
     context.webAPI
       .retrieveRecord("systemuser", userId, "?$select=fullname")
@@ -706,7 +723,7 @@ const App = ({ context, notificationPosition }: IProps) => {
         setCurrentUserDisplayName(typeof name === "string" ? name : null);
       })
       .catch(() => setCurrentUserDisplayName(null));
-  }, [context]);
+  }, [currentUserId, hasWebApi]);
 
   // Re-apply preset with {{currentUser}} once the user name is loaded
   useEffect(() => {
@@ -786,11 +803,13 @@ const App = ({ context, notificationPosition }: IProps) => {
     return resolveFormId(formIdByField, value);
   }, [formIdByField, dataset]);
 
-  const openEntityInNewTab = useCallback((entityName: string, id: string) => {
+  // Referenzstabil (useStableCallback): ruft immer die aktuelle Implementierung auf, aendert
+  // aber nie die Identitaet -> CardActionsContext bleibt bei updateView stabil.
+  const openEntityInNewTab = useStableCallback((entityName: string, id: string) => {
     openEntityInNewTabRaw(entityName, id, formIdForRecord(entityName, id));
-  }, [openEntityInNewTabRaw, formIdForRecord]);
+  });
 
-  const openFormWithLoading = useCallback(async (entityName: string, id?: string) => {
+  const openFormWithLoading = useStableCallback(async (entityName: string, id?: string) => {
     if (openingRef.current) return;
     openingRef.current = true;
     setIsOpeningEntity(true);
@@ -800,7 +819,7 @@ const App = ({ context, notificationPosition }: IProps) => {
       openingRef.current = false;
       setIsOpeningEntity(false);
     }
-  }, [openForm, formIdForRecord]);
+  });
 
   const filterRecords = useCallback(
     (activeView: ViewItem, quickFilterFieldsList: string[]) => {
@@ -920,9 +939,26 @@ const App = ({ context, notificationPosition }: IProps) => {
   // (filterRecords hängt an dataset.records/columns), View oder Quick-Filter-Felder
   // ändern. NICHT bei Filter-/Sortier-/Sucheingaben -> Karten-Objekte bleiben
   // referenzstabil (Voraussetzung für React.memo an den Karten).
+  //
+  // Nach einem dataset.refresh() (z. B. nach jedem Karten-Move) entstehen fuer ALLE Records
+  // neue Karten-Objekte, obwohl sich meist nur einer geaendert hat. Karten mit identischem
+  // Inhalt (Strukturvergleich) behalten daher ihr bisheriges Objekt -> React.memo an Card
+  // greift und nur tatsaechlich geaenderte Karten rendern neu.
+  const previousCardsRef = useRef<Map<string, Record<string, unknown>>>(new Map());
   const transformedCards = useMemo<Record<string, unknown>[]>(() => {
     if (activeView === undefined || activeView.columns === undefined) return [];
-    return filterRecords(activeView, quickFilterFieldsParsed);
+    const fresh = filterRecords(activeView, quickFilterFieldsParsed);
+    const previous = previousCardsRef.current;
+    const next = new Map<string, Record<string, unknown>>();
+    const result = fresh.map((card) => {
+      const id = String(card.id);
+      const prev = previous.get(id);
+      const reused = prev !== undefined && cardValuesEqual(prev, card) ? prev : card;
+      next.set(id, reused);
+      return reused;
+    });
+    previousCardsRef.current = next;
+    return result;
   }, [filterRecords, activeView, quickFilterFieldsParsed, datasetRecordsKey]);
 
   // Dropdown-Wertelisten der Quick-Filter: haengen NUR von den transformierten Karten und
@@ -1213,33 +1249,44 @@ const App = ({ context, notificationPosition }: IProps) => {
 
   // Stabiler Wert für die Karten (siehe card-actions-context.ts): ändert sich nur bei
   // context/activeView/Callback-/Flag-Änderungen, NICHT bei Filter/Sort/Suche.
+  //
+  // `context` ist ein Getter auf das jeweils aktuelle PCF-Context-Objekt: Karten lesen beim
+  // Rendern immer den neuesten Context, der Value wechselt aber NICHT, nur weil die Plattform
+  // bei updateView (Resize, Refresh) ein neues Context-Objekt uebergibt. configParamRaw in den
+  // Dependencies sorgt dafuer, dass eine geaenderte Konfiguration die Karten neu rendert.
+  const latestContextRef = useRef(context);
+  latestContextRef.current = context;
+  const stableOpenCreateActivityForm = useStableCallback(openCreateActivityForm);
+  const stableOpenSharePointFolderInNewTab = useStableCallback(openSharePointFolderInNewTab);
   const cardActions = useMemo(
     () => ({
       locale,
-      context,
+      get context() {
+        return latestContextRef.current;
+      },
       activeView,
       openFormWithLoading,
       openEntityInNewTab,
       showOpenInNewTabButton,
       showCreateActivityButton,
       createActivityEntityType,
-      openCreateActivityForm,
+      openCreateActivityForm: stableOpenCreateActivityForm,
       showSharePointFolderButton,
-      openSharePointFolderInNewTab,
+      openSharePointFolderInNewTab: stableOpenSharePointFolderInNewTab,
       getCardWarning,
     }),
     [
       locale,
-      context,
+      configParamRaw,
       activeView,
       openFormWithLoading,
       openEntityInNewTab,
       showOpenInNewTabButton,
       showCreateActivityButton,
       createActivityEntityType,
-      openCreateActivityForm,
+      stableOpenCreateActivityForm,
       showSharePointFolderButton,
-      openSharePointFolderInNewTab,
+      stableOpenSharePointFolderInNewTab,
       getCardWarning,
     ]
   );
