@@ -9,7 +9,8 @@ A PowerApps Component Framework (PCF) virtual control that renders Dataverse rec
 ## Build Commands
 
 ```bash
-npm run build          # Build the control
+npm run build          # Build the control (development bundle, ~2.5 MB, for debugging)
+npm run build:prod     # Production bundle (~380 KB) - build this right before deploying
 npm run start          # Start PCF test harness
 npm run start:watch    # Start with file watching
 npm run lint           # Run ESLint
@@ -24,6 +25,8 @@ npm run refreshTypes   # Regenerate ManifestTypes from ControlManifest.Input.xml
 ~/.dotnet/tools/pac auth create --environment https://vonmaehlen.crm4.dynamics.com
 ~/.dotnet/tools/pac pcf push --publisher-prefix cre56   # deployed as cre56_novalogica.KanbanViewControl
 ```
+
+The `.pcfproj` sets `PcfBuildMode=production`. Run `npm run build:prod` before `pac pcf push` so a stale development bundle in `out/` is never deployed; the deployed `bundle.js` should be ~380 KB, not ~2.5 MB.
 
 ## Architecture
 
