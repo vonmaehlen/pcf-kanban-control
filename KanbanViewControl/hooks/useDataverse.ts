@@ -9,7 +9,7 @@ export type ConfigErrorReporter = (property: string, message: string) => void;
 export type ClearConfigError = (property: string) => void;
 
 /**
- * Anzahl Record-IDs pro In()-Filter bei der BPF-Stage-Abfrage. Alle IDs (bis 2500) in
+ * Anzahl Record-IDs pro In()-Filter bei der BPF-Stage-Abfrage. Alle IDs (bis zu mehreren Tausend) in
  * einer URL wuerden die URL-Laengenlimits sprengen; daher wird in Chunks abgefragt.
  */
 const BPF_STAGE_QUERY_CHUNK_SIZE = 100;

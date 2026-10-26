@@ -41,6 +41,7 @@ export interface Strings {
   quickFiltersMoreFilters: string;
   quickFiltersMoreFiltersOpen: string;
   quickFiltersSearchPlaceholder: string;
+  recordsIncompletelyLoaded: (loaded: number) => string;
   quickFiltersSearchAriaLabel: string;
   quickFiltersAriaLabel: string;
   sortByLabel: string;
@@ -121,6 +122,7 @@ const en: Strings = {
   quickFiltersMoreFilters: "More filters",
   quickFiltersMoreFiltersOpen: "Open more filters",
   quickFiltersSearchPlaceholder: "Search in all fields…",
+  recordsIncompletelyLoaded: (loaded) => `Only the first ${loaded} records were loaded. The board and the search do not include all records - please narrow the view.`,
   quickFiltersSearchAriaLabel: "Search in all card fields",
   quickFiltersAriaLabel: "Quick filters and search",
   sortByLabel: "Sort by",
@@ -194,6 +196,7 @@ const de: Strings = {
   quickFiltersMoreFilters: "Weitere Filter",
   quickFiltersMoreFiltersOpen: "Weitere Filter öffnen",
   quickFiltersSearchPlaceholder: "In allen Feldern suchen…",
+  recordsIncompletelyLoaded: (loaded) => `Es wurden nur die ersten ${loaded} Datensätze geladen. Board und Suche umfassen nicht alle Datensätze – bitte die Ansicht einschränken.`,
   quickFiltersSearchAriaLabel: "Suche in allen Kartenfeldern",
   quickFiltersAriaLabel: "Schnellfilter und Suche",
   sortByLabel: "Sortieren nach",

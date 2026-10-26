@@ -5,7 +5,7 @@ import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { BoardContext, ConfigError, QuickFilterFieldConfig, SortFieldConfig, SortDirection, FilterPresetConfig } from "./context/board-context";
 import { ColumnItem, ViewItem, ViewEntity } from "./interfaces";
 import Loading from "./components/container/loading";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { useDataverse } from "./hooks/useDataverse";
 import { useCardConfig } from "./hooks/useCardConfig";
 import { CardConfigContext } from "./context/card-config-context";
@@ -14,7 +14,7 @@ import { SelectionContext } from "./context/selection-context";
 import { useSelection } from "./hooks/useSelection";
 import { useNavigation } from "./hooks/useNavigation";
 import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, isOptionSetColumnDataType, toComparableDate, toComparableNumber, toOptionSetNumericIds, isDateInFilterRange, isNumberInFilterRange, isNumberFilterExpression, isOptionSetIdInNumberFilterRange, parseFieldDisplayNames } from "./lib/utils";
-import { unlocatedColumn, OPTION_ID_SUFFIX } from "./lib/constants";
+import { unlocatedColumn, OPTION_ID_SUFFIX, DATASET_LOAD_PAGE_SIZE, MAX_LOADED_RECORDS, toastOptions } from "./lib/constants";
 import { resolveGlobalFunction } from "./lib/global-function";
 import { CardWarningArgs, DEFAULT_CARD_WARNING_COLOR, toCardWarning, toWarningRawValue } from "./lib/card-warning";
 import { resolveFormId } from "./lib/form-id";
@@ -1172,6 +1172,7 @@ const App = ({ context, notificationPosition }: IProps) => {
     handleViewChange();
   }, [handleViewChange]);
 
+  const incompleteLoadWarnedRef = useRef(false);
   const handleColumnsChange = async () => {
     const recordIds = Object.keys(dataset.records);
     if (recordIds.length <= 0) {
@@ -1182,18 +1183,36 @@ const App = ({ context, notificationPosition }: IProps) => {
     if (
       context.parameters.dataset.paging != null &&
       context.parameters.dataset.paging.hasNextPage == true &&
-      recordIds.length < 2500
+      recordIds.length < MAX_LOADED_RECORDS
     ) {
       // Page-Size fuer das Nachladen hochsetzen: Das Board braucht ALLE Records
       // client-seitig (Gruppierung/Filter/Sortierung/Suche). Die Standard-Page-Size ist
       // durch die Dynamics-Einstellung "Datensaetze pro Seite" auf max. 250 gedeckelt und
       // erzeugt sonst viele sequenzielle Roundtrips. So kommt der Rest in moeglichst
       // wenigen Anfragen. setPageSize wird defensiv aufgerufen (nicht in jeder SDK-Version typisiert).
+      // Frueher war hier bei 2500 Records Schluss -> Karten darueber fehlten auf dem Board
+      // und wurden von der Schnellsuche nicht gefunden.
       const paging = context.parameters.dataset.paging as
         typeof context.parameters.dataset.paging & { setPageSize?: (pageSize: number) => void };
-      paging.setPageSize?.(2500);
+      paging.setPageSize?.(DATASET_LOAD_PAGE_SIZE);
       paging.loadNextPage();
       return;
+    }
+
+    // Unvollstaendig geladen (Obergrenze erreicht): sichtbar machen, statt still Karten
+    // (und Suchtreffer) zu verschlucken. totalResultCount ist -1, wenn unbekannt.
+    const totalResultCount = context.parameters.dataset.paging?.totalResultCount ?? -1;
+    console.info(
+      `[KanbanViewControl] Records geladen: ${recordIds.length}` +
+        (totalResultCount >= 0 ? ` von ${totalResultCount}` : "")
+    );
+    if (context.parameters.dataset.paging?.hasNextPage === true && !incompleteLoadWarnedRef.current) {
+      incompleteLoadWarnedRef.current = true;
+      console.warn(
+        `[KanbanViewControl] Nicht alle Records geladen (Obergrenze ${MAX_LOADED_RECORDS}). ` +
+          "Board und Schnellsuche umfassen nur die geladenen Records."
+      );
+      toast.error(getStrings(locale).recordsIncompletelyLoaded(recordIds.length), toastOptions);
     }
 
     // Metadaten erst laden, wenn alle Seiten geladen sind (sonst würde getOptionSets bei

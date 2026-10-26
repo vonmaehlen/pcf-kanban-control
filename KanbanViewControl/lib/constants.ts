@@ -8,6 +8,17 @@ export const LOAD_MORE_CARDS_COUNT = 30;
 export const SCROLL_LOAD_THRESHOLD_PX = 150;
 
 /**
+ * Page-Size beim Nachladen der restlichen Records. 5000 ist das Dataverse-Maximum pro Abfrage.
+ * Das Board braucht ALLE Records client-seitig (Gruppierung/Filter/Sortierung/Suche).
+ */
+export const DATASET_LOAD_PAGE_SIZE = 5000;
+/**
+ * Sicherheitsobergrenze fuer client-seitig geladene Records. Was darueber liegt, fehlt auf dem
+ * Board und in der Schnellsuche – das wird in der Konsole und per Toast gemeldet.
+ */
+export const MAX_LOADED_RECORDS = 50000;
+
+/**
  * Suffix des Kartenfelds mit der numerischen OptionSet-ID (z. B. "prioritycodeOptionIdRaw").
  * Basis fuer sprachunabhaengige Vergleiche: numerische Quick-Filter und Kartenfarben.
  * Endet auf "Raw", damit der Wert – wie die uebrigen Rohwerte – nicht in den Suchtext und
