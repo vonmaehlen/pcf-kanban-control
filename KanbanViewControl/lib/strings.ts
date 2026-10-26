@@ -48,6 +48,12 @@ export interface Strings {
   sortNone: string;
   sortAscending: string;
   sortDescending: string;
+
+  // Column sum (value / expected value)
+  sumValueTitle: string;
+  sumExpectedTitle: string;
+  sumExpectedShort: string;
+  sumNoProbability: string;
   filterPresetLabel: string;
   filterPresetNone: string;
 
@@ -129,6 +135,10 @@ const en: Strings = {
   sortNone: "(None)",
   sortAscending: "Ascending",
   sortDescending: "Descending",
+  sumValueTitle: "Sum of values – click for the expected value (value × probability)",
+  sumExpectedTitle: "Expected value (value × probability) – click for the plain value",
+  sumExpectedShort: "exp.",
+  sumNoProbability: "Sum of values. For the expected value the view needs the column Probability.",
   filterPresetLabel: "Filter preset",
   filterPresetNone: "(No preset)",
 
@@ -203,6 +213,10 @@ const de: Strings = {
   sortNone: "(Keine)",
   sortAscending: "Aufsteigend",
   sortDescending: "Absteigend",
+  sumValueTitle: "Summe der Werte – klicken für den Erwartungswert (Wert × Wahrscheinlichkeit)",
+  sumExpectedTitle: "Erwartungswert (Wert × Wahrscheinlichkeit) – klicken für den Wert",
+  sumExpectedShort: "erw.",
+  sumNoProbability: "Summe der Werte. Für den Erwartungswert braucht die Ansicht die Spalte Wahrscheinlichkeit.",
   filterPresetLabel: "Filter-Preset",
   filterPresetNone: "(Kein Preset)",
 

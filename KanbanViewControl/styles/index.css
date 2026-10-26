@@ -97,6 +97,36 @@
   background-color: rgb(199, 224, 244);
 }
 
+/* Summe als Umschalter Wert / Erwartungswert (lib/sum-mode.ts) */
+.column-sum--toggle {
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.column-sum--toggle:hover,
+.column-sum--toggle:focus-visible {
+  border-color: rgb(33, 78, 128);
+  outline: none;
+}
+
+.column-sum--expected {
+  background-color: rgb(255, 241, 206);
+  color: rgb(122, 76, 0);
+}
+
+.column-sum--expected:hover,
+.column-sum--expected:focus-visible {
+  border-color: rgb(122, 76, 0);
+}
+
+.column-sum-mode {
+  font-weight: 400;
+  margin-right: 4px;
+}
+
 .column-counter {
   min-width: 16px;
   height: 16px;

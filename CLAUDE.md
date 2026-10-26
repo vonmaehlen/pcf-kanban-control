@@ -97,6 +97,16 @@ Responsive filter bar above the board with inline dropdowns, a funnel button (ri
 - `filterRecords` stores `${field}${OPTION_ID_SUFFIX}` for **every** OptionSet/Choice **and** Boolean column (not only quick-filter fields), so coloring works for columns that are not rendered on the card. `toOptionSetNumericIds` maps booleans to 1/0. `OPTION_ID_SUFFIX` lives in `lib/constants.ts`.
 - The color is applied as the CSS variable `--card-bg` plus the class `card-container--custom-bg`; the hover state darkens it with an inset overlay so no color math is needed in JS. An inline `background-color` would have killed the hover effect.
 
+### Column sum: value / expected value (`lib/sum-mode.ts`)
+
+- The column header sums `estimatedvalueRaw`. If the view also contains `closeprobability` (it does not need to be
+  shown on the card — the probability is read from the card's raw values `__values`), the sum is a button: a click
+  switches **all** columns between value and expected value (value × probability / 100, cards without probability
+  count 0). The choice is stored per browser in `localStorage` (`kanbanViewControl.sumMode`).
+- Without the probability column the sum stays a plain value with a hint in the tooltip.
+- Shared state across headers via a small listener set (`useSumMode`), React 16.8 has no `useSyncExternalStore`.
+- Test: `node KanbanViewControl/lib/sum-mode.test.mjs`.
+
 ### Key Dependencies
 
 - `@hello-pangea/dnd` — Drag-and-drop (fork of react-beautiful-dnd)

@@ -8,13 +8,18 @@ import { useContext, useMemo } from "react";
 import { BoardContext } from "../../context/board-context";
 import { useNavigation } from "../../hooks/useNavigation";
 import { getCurrencySymbolFromFormatted } from "../../lib/utils";
+import { getStrings } from "../../lib/strings";
+import { columnSum, hasProbabilityColumn, hasValue, useSumMode } from "../../lib/sum-mode";
 
 interface IProps {
   column: ColumnItem
 }
 
 const ColumnHeader = ({ column }: IProps) => {
-  const { context, activeView } = useContext(BoardContext);
+  const { context, activeView, locale } = useContext(BoardContext);
+  const strings = getStrings(locale);
+  // Wert oder Erwartungswert — gilt für alle Spalten, Klick auf die Summe schaltet um
+  const [sumMode, setSumMode] = useSumMode();
   const { createNewRecord } = useNavigation(context);
 
   const allowCreateNew =
@@ -36,15 +41,10 @@ const ColumnHeader = ({ column }: IProps) => {
   }, [column.cards]);
 
   const estimatedValueSumAndSymbol = useMemo(() => {
-    const cards = column.cards ?? [];
-    const hasEstimatedValue = cards.some(
-      (card) => "estimatedvalueRaw" in card && (card as { estimatedvalueRaw?: number }).estimatedvalueRaw != null
-    );
-    if (!hasEstimatedValue) return null;
-    const sum = cards.reduce(
-      (acc, card) => acc + (Number((card as { estimatedvalueRaw?: number }).estimatedvalueRaw) || 0),
-      0
-    );
+    const cards = (column.cards ?? []) as unknown as Parameters<typeof columnSum>[0];
+    if (!hasValue(cards)) return null;
+    const withProbability = hasProbabilityColumn(cards);
+    const mode = withProbability ? sumMode : "value";
     const firstFormatted = cards.find(
       (c) => (c as { estimatedvalue?: { value?: string } }).estimatedvalue?.value
     ) as { estimatedvalue?: { value?: string } } | undefined;
@@ -52,23 +52,32 @@ const ColumnHeader = ({ column }: IProps) => {
     const symbol = typeof formattedStr === "string"
       ? getCurrencySymbolFromFormatted(formattedStr)
       : "€";
-    return { sum, symbol };
-  }, [column.cards]);
+    return { sum: columnSum(cards, mode), symbol, mode, withProbability };
+  }, [column.cards, sumMode]);
 
   return (
     <div className="column-header-container">
       <div className="column-header">
         <Text variant="xLarge" nowrap>{column.title}</Text>
         <div className="column-actions">
-          { estimatedValueSumAndSymbol != null && (
-            <Text variant="small" className="column-sum">
-              {context.formatting.formatCurrency(
-                estimatedValueSumAndSymbol.sum,
-                2,
-                estimatedValueSumAndSymbol.symbol
+          { estimatedValueSumAndSymbol != null && (estimatedValueSumAndSymbol.withProbability ? (
+            <button
+              type="button"
+              className={`column-sum column-sum--toggle${estimatedValueSumAndSymbol.mode === "expected" ? " column-sum--expected" : ""}`}
+              title={estimatedValueSumAndSymbol.mode === "expected" ? strings.sumExpectedTitle : strings.sumValueTitle}
+              aria-pressed={estimatedValueSumAndSymbol.mode === "expected"}
+              onClick={() => setSumMode(estimatedValueSumAndSymbol.mode === "expected" ? "value" : "expected")}
+            >
+              {estimatedValueSumAndSymbol.mode === "expected" && (
+                <span className="column-sum-mode">{strings.sumExpectedShort}</span>
               )}
+              {context.formatting.formatCurrency(estimatedValueSumAndSymbol.sum, 2, estimatedValueSumAndSymbol.symbol)}
+            </button>
+          ) : (
+            <Text variant="small" className="column-sum" title={strings.sumNoProbability}>
+              {context.formatting.formatCurrency(estimatedValueSumAndSymbol.sum, 2, estimatedValueSumAndSymbol.symbol)}
             </Text>
-          ) }
+          )) }
           { count > 0 && <Text variant="small" className="column-counter">{count}</Text> }
           { allowCreateNew && (
             <IconButton iconName='Add' onClick={() => { onAddNewRecord(column.id as string); }} noBorder />

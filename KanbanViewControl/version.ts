@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.40";
+export const CONTROL_VERSION = "1.7.41";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 38;
+export const BUILD_NUMBER = 39;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "Alle Records laden (Obergrenze 2500 aufgehoben), damit die Schnellsuche alles findet";
+export const BUILD_DESCRIPTION = "Spaltensumme per Klick zwischen Wert und Erwartungswert umschalten";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
