@@ -14,6 +14,7 @@ import { useContext } from "react";
 import { Spinner, SpinnerSize } from "@fluentui/react";
 import { optionIdMatches } from "../../lib/utils";
 import { OPTION_ID_SUFFIX } from "../../lib/constants";
+import { cardProbability, VALUE_FIELD } from "../../lib/sum-mode";
 
 interface IProps {
   item: CardItem;
@@ -398,6 +399,10 @@ const Card = ({ item, draggable = true }: IProps) => {
                 textEllipsis={setMatchesField(ellipsisFieldsOnCardSet, fieldKey)}
                 preserveLineBreaks={setMatchesField(lineBreakFieldsOnCardSet, fieldKey)}
                 maxHeightPx={mapGetByField(fieldMaxHeightOnCardMap, fieldKey)}
+                {...(fieldKey === VALUE_FIELD ? {
+                  valueRaw: typeof item[`${VALUE_FIELD}Raw`] === "number" ? item[`${VALUE_FIELD}Raw`] as number : null,
+                  probabilityRaw: cardProbability(item as unknown as Parameters<typeof cardProbability>[0]),
+                } : {})}
               />
             );
           })}

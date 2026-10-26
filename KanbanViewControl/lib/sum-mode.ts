@@ -28,6 +28,19 @@ export const hasValue = (cards: CardLike[]): boolean => cards.some((c) => toNumb
 export const hasProbabilityColumn = (cards: CardLike[]): boolean =>
   cards.some((c) => c.__values != null && PROBABILITY_FIELD in c.__values);
 
+/**
+ * Wert und Wahrscheinlichkeit einer Karte fuer die Anzeige im Wert-Feld. `probability` ist `undefined`, wenn die Ansicht
+ * die Spalte nicht enthaelt (dann gibt es keinen Erwartungswert), `null`, wenn sie leer ist.
+ */
+export function cardProbability(card: CardLike): number | null | undefined {
+  if (card.__values == null || !(PROBABILITY_FIELD in card.__values)) return undefined;
+  return toNumber(card.__values[PROBABILITY_FIELD]);
+}
+
+/** Erwartungswert einer Karte; ohne Wahrscheinlichkeit 0 (wie in der Spaltensumme). */
+export const expectedValue = (value: number | null, probability: number | null): number =>
+  value === null || probability === null ? 0 : (value * probability) / 100;
+
 /** Summe einer Spalte nach Modus. */
 export function columnSum(cards: CardLike[], mode: SumMode): number {
   return cards.reduce((acc, c) => {

@@ -122,6 +122,20 @@
   border-color: rgb(122, 76, 0);
 }
 
+/* Wert-Feld im Erwartungswert-Modus (CardDetails.ValueWithExpected) */
+.card-info-value--expected {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-info-value--expected .card-info-value {
+  color: rgb(122, 76, 0);
+}
+
+.card-info-expected-basis {
+  color: #707070;
+}
+
 .column-sum-mode {
   font-weight: 400;
   margin-right: 4px;

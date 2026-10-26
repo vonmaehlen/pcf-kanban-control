@@ -2,7 +2,7 @@
 // Type Stripping fuer die .ts-Datei):
 //
 //   node KanbanViewControl/lib/sum-mode.test.mjs
-import { columnSum, hasProbabilityColumn, hasValue } from "./sum-mode.ts";
+import { cardProbability, columnSum, expectedValue, hasProbabilityColumn, hasValue } from "./sum-mode.ts";
 
 let failed = 0;
 
@@ -25,6 +25,11 @@ check("hasValue", [hasValue(cards), hasValue([{ __values: {} }])], [true, false]
 check("hasProbabilityColumn: Spalte in der Ansicht", [hasProbabilityColumn(cards), hasProbabilityColumn([{ estimatedvalueRaw: 1, __values: {} }])],
   [true, false]);
 check("Wkt als Text", columnSum([{ estimatedvalueRaw: "100", __values: { closeprobability: "25" } }], "expected"), 25);
+
+check("cardProbability: Spalte fehlt / leer / gesetzt",
+  [cardProbability({ __values: {} }), cardProbability({ __values: { closeprobability: null } }), cardProbability({ __values: { closeprobability: "40" } })],
+  [undefined, null, 40]);
+check("expectedValue", [expectedValue(1000, 25), expectedValue(1000, null), expectedValue(null, 50)], [250, 0, 0]);
 
 if (failed) { console.log(`\n${failed} fehlgeschlagen`); process.exit(1); }
 console.log("\nalle Pruefungen bestanden");

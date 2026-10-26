@@ -54,6 +54,8 @@ export interface Strings {
   sumExpectedTitle: string;
   sumExpectedShort: string;
   sumNoProbability: string;
+  cardExpectedBasis: (value: string, probability: number) => string;
+  cardExpectedNoProbability: (value: string) => string;
   filterPresetLabel: string;
   filterPresetNone: string;
 
@@ -139,6 +141,8 @@ const en: Strings = {
   sumExpectedTitle: "Expected value (value × probability) – click for the plain value",
   sumExpectedShort: "exp.",
   sumNoProbability: "Sum of values. For the expected value the view needs the column Probability.",
+  cardExpectedBasis: (value, probability) => `Value ${value} · ${probability} %`,
+  cardExpectedNoProbability: (value) => `Value ${value} · no probability`,
   filterPresetLabel: "Filter preset",
   filterPresetNone: "(No preset)",
 
@@ -217,6 +221,8 @@ const de: Strings = {
   sumExpectedTitle: "Erwartungswert (Wert × Wahrscheinlichkeit) – klicken für den Wert",
   sumExpectedShort: "erw.",
   sumNoProbability: "Summe der Werte. Für den Erwartungswert braucht die Ansicht die Spalte Wahrscheinlichkeit.",
+  cardExpectedBasis: (value, probability) => `Wert ${value} · ${probability} %`,
+  cardExpectedNoProbability: (value) => `Wert ${value} · ohne Wahrscheinlichkeit`,
   filterPresetLabel: "Filter-Preset",
   filterPresetNone: "(Kein Preset)",
 

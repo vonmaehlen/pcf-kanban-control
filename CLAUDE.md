@@ -104,6 +104,9 @@ Responsive filter bar above the board with inline dropdowns, a funnel button (ri
   switches **all** columns between value and expected value (value × probability / 100, cards without probability
   count 0). The choice is stored per browser in `localStorage` (`kanbanViewControl.sumMode`).
 - Without the probability column the sum stays a plain value with a hint in the tooltip.
+- The card's value field (`estimatedvalue`) follows the same switch (`CardDetails.ValueWithExpected`): in expected mode
+  it shows value × probability, below in small print the value and the probability. Only this field subscribes to the
+  switch, so other fields do not re-render. `Card.tsx` passes `valueRaw`/`probabilityRaw` as primitives (memo-stable).
 - Shared state across headers via a small listener set (`useSumMode`), React 16.8 has no `useSyncExternalStore`.
 - Test: `node KanbanViewControl/lib/sum-mode.test.mjs`.
 

@@ -10,6 +10,8 @@ import { CardActionsContext } from "../../context/card-actions-context";
 import { getStrings } from "../../lib/strings";
 import { useContext } from "react";
 import { MultiType } from "../../interfaces/card.type";
+import { expectedValue, useSumMode } from "../../lib/sum-mode";
+import { getCurrencySymbolFromFormatted } from "../../lib/utils";
 
 interface HtmlSanitizeParams {
   allowedHtmlTagsOnCard?: { raw?: string };
@@ -42,7 +44,35 @@ interface ICardInfoProps {
   preserveLineBreaks?: boolean,
   /** Maximum height in pixels for the field value; overflow is scrollable. */
   maxHeightPx?: number,
+  /** Nur am Wert-Feld (estimatedvalue): Rohwert und Wahrscheinlichkeit fuer den Erwartungswert-Modus.
+   *  `probabilityRaw` undefined = Ansicht ohne Wahrscheinlichkeit -> immer der Wert. */
+  valueRaw?: number | null,
+  probabilityRaw?: number | null,
 }
+
+/**
+ * Wert-Feld, das dem Umschalter der Spaltensumme folgt (lib/sum-mode.ts): im Erwartungswert-Modus Wert x Wkt., darunter
+ * klein der Wert und die Wahrscheinlichkeit. Eigene Komponente, damit nur dieses Feld auf den Umschalter hoert.
+ */
+const ValueWithExpected = ({ formatted, valueRaw, probabilityRaw }: { formatted: string; valueRaw: number | null; probabilityRaw: number | null }) => {
+  const { locale, context } = useContext(CardActionsContext);
+  const strings = getStrings(locale);
+  const [mode] = useSumMode();
+  if (mode !== "expected") {
+    return <Text className="card-text card-info-value" variant="medium">{formatted}</Text>;
+  }
+  const symbol = getCurrencySymbolFromFormatted(formatted);
+  return (
+    <span className="card-info-value--expected" title={strings.sumExpectedTitle}>
+      <Text className="card-text card-info-value" variant="medium">
+        {context.formatting.formatCurrency(expectedValue(valueRaw, probabilityRaw), 2, symbol)}
+      </Text>
+      <Text className="card-info-expected-basis" variant="small">
+        {probabilityRaw === null ? strings.cardExpectedNoProbability(formatted) : strings.cardExpectedBasis(formatted, probabilityRaw)}
+      </Text>
+    </span>
+  );
+};
 
 const CARD_INFO_GAP_PX = 16;
 
@@ -52,7 +82,7 @@ function getColumnDataType(dataset: { columns?: { name: string; dataType?: strin
   return col?.dataType;
 }
 
-const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false, preserveLineBreaks = false, maxHeightPx }: ICardInfoProps) => {
+const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false, preserveLineBreaks = false, maxHeightPx, valueRaw, probabilityRaw }: ICardInfoProps) => {
   const { locale, context, openFormWithLoading } = useContext(CardActionsContext);
   const strings = getStrings(locale);
   const htmlHostRef = useRef<HTMLDivElement>(null);
@@ -173,12 +203,16 @@ const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml =
                     className={"card-info-value-wrap" + (preserveLineBreaks ? " card-info-value-wrap--line-breaks" : "")}
                     style={maxHeightPx != null ? { maxHeight: maxHeightPx, overflowY: "auto" } : undefined}
                   >
-                    <Text
-                      className={"card-text card-info-value" + (preserveLineBreaks ? " card-info-value--pre-wrap" : "")}
-                      variant="medium"
-                    >
-                      {handleInfoValue(info.value)}
-                    </Text>
+                    {probabilityRaw !== undefined && !isEmpty ? (
+                      <ValueWithExpected formatted={String(handleInfoValue(info.value))} valueRaw={valueRaw ?? null} probabilityRaw={probabilityRaw} />
+                    ) : (
+                      <Text
+                        className={"card-text card-info-value" + (preserveLineBreaks ? " card-info-value--pre-wrap" : "")}
+                        variant="medium"
+                      >
+                        {handleInfoValue(info.value)}
+                      </Text>
+                    )}
                   </div>
                 )
       }
