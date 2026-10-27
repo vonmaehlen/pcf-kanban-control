@@ -14,6 +14,7 @@ import { SelectionContext } from "./context/selection-context";
 import { useSelection } from "./hooks/useSelection";
 import { useNavigation } from "./hooks/useNavigation";
 import { getColumnValue, isBooleanColumnDataType, isDateColumnDataType, isNumberColumnDataType, isOptionSetColumnDataType, toComparableDate, toComparableNumber, toOptionSetNumericIds, isDateInFilterRange, isNumberInFilterRange, isNumberFilterExpression, isOptionSetIdInNumberFilterRange, parseFieldDisplayNames } from "./lib/utils";
+import { unappliedPresetFields, unappliedPresetFieldsMessage } from "./lib/preset-fields";
 import { unlocatedColumn, OPTION_ID_SUFFIX, DATASET_LOAD_PAGE_SIZE, MAX_LOADED_RECORDS, toastOptions } from "./lib/constants";
 import { resolveGlobalFunction } from "./lib/global-function";
 import { CardWarningArgs, DEFAULT_CARD_WARNING_COLOR, toCardWarning, toWarningRawValue } from "./lib/card-warning";
@@ -674,6 +675,17 @@ const App = ({ context, notificationPosition }: IProps) => {
     },
     [filterPresetsConfig, quickFilterFieldsConfig, currentUserDisplayName]
   );
+
+  // Preset-Felder ohne Quick Filter wuerden stillschweigend ignoriert: im Banner melden.
+  // Erst pruefen, wenn das Dataset Spalten hat, sonst ist die Quick-Filter-Liste noch leer.
+  useEffect(() => {
+    if (!dataset?.columns?.length) return;
+    const message = unappliedPresetFieldsMessage(
+      unappliedPresetFields(filterPresetsConfig, quickFilterFieldsConfig.map((c) => c.key))
+    );
+    if (message) reportConfigError("filters.presets", message);
+    else clearConfigError("filters.presets");
+  }, [dataset?.columns, filterPresetsConfig, quickFilterFieldsConfig, reportConfigError, clearConfigError]);
 
   // Standardfilter: Ein mit "default": true markiertes Preset wird beim ersten Laden
   // automatisch angewendet, sofern noch kein gespeicherter Filterzustand existierte.

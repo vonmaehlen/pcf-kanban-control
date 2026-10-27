@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.42";
+export const CONTROL_VERSION = "1.7.43";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 40;
+export const BUILD_NUMBER = 41;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "Erwartungswert auch auf den Karten (Wert-Feld folgt dem Umschalter der Spaltensumme)";
+export const BUILD_DESCRIPTION = "Preset-Felder ohne Quick Filter werden im Konfigurationsfehler-Banner gemeldet";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;

@@ -935,6 +935,8 @@ Or comma-separated.
 
 Predefined filters shown as a dropdown next to sorting. Each preset: `{"id":"unique-id","label":"Display name","filters":{"fieldLogicalName":"filterValue"}}`. For **multiselect** use an array as value; for Boolean use a single value. **The filter preset dropdown is only shown when this property is set.**
 
+**A preset only filters fields that are quick filters** (`filters.quickFilters`, legacy `quickFilterFields`) and part of the view. Any other preset field is ignored and reported in the configuration errors banner (since 1.7.43). To filter by a field without showing it in the filter bar, add it with `"inPopup": true`.
+
 **Date fields:** `"today"`, `"last7"`, `"last30"`, `"currentMonth"`, `"currentYear"`, `"currentWeek"`, `"nextWeek"`, `"nextMonth"`, `"YYYY-MM-DD|YYYY-MM-DD"` or `{"start":"YYYY-MM-DD","end":"YYYY-MM-DD"}`.  
 **Number/currency fields:** `"eq:123"`, `"gt:123"`, `"lt:456"`, `"gte:0"`, `"lte:10000"`, `"between:100|5000"`.  
 **OptionSet/Choice fields:** the same numeric operators are allowed and are compared against the **numeric option value (id)**, never against the displayed label – see [Numeric filters on OptionSet fields](#numeric-filters-on-optionset-fields).  
