@@ -19,6 +19,8 @@ import { unlocatedColumn, OPTION_ID_SUFFIX, DATASET_LOAD_PAGE_SIZE, MAX_LOADED_R
 import { resolveGlobalFunction } from "./lib/global-function";
 import { CardWarningArgs, DEFAULT_CARD_WARNING_COLOR, toCardWarning, toWarningRawValue } from "./lib/card-warning";
 import { resolveFormId } from "./lib/form-id";
+import { openActivityDialog } from "./lib/activityDialog";
+import { isDialogTable, shouldEditInDialog } from "./lib/activity-dialog-route";
 import { cardValuesEqual } from "./lib/card-equality";
 import { CardWarning } from "./context/card-actions-context";
 import {
@@ -826,7 +828,17 @@ const App = ({ context, notificationPosition }: IProps) => {
     openingRef.current = true;
     setIsOpeningEntity(true);
     try {
-      await openForm(entityName, id, formIdForRecord(entityName, id));
+      let handled = false;
+      if (shouldEditInDialog(entityName, id) && isDialogTable(entityName)) {
+        try {
+          await openActivityDialog({ mode: "edit", entity: entityName, id });
+          handled = true;
+        } catch (e) {
+          console.warn("[Kanban] Aktivitätsdialog nicht verfügbar, öffne CRM-Formular", e);
+        }
+      }
+      if (handled) context.parameters.dataset.refresh();
+      else await openForm(entityName, id, formIdForRecord(entityName, id));
     } finally {
       openingRef.current = false;
       setIsOpeningEntity(false);

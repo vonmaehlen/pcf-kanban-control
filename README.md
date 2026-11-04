@@ -441,6 +441,8 @@ When **Yes**, each card shows an additional **create activity** button (calendar
 Clicking the button opens a **Quick Create form** for the configured activity type when available; otherwise, the standard create form is opened.  
 The new activity is automatically linked to the card's record via the **Regarding** relationship (using `createFromEntity`). Default: **No**.
 
+**Activity dialog (since 1.7.44):** For `task` and `cre56_internal_task` on opportunity, lead and account boards the button opens the activity dialog (web resource `cre56_/activitydialog/index.html`, copy of `crm-activity-dialog/client/openActivityDialog.ts` in `lib/activityDialog.ts`) with the card as regarding record instead of the Quick Create form. Opening an existing task or internal task (e.g. when the board shows activities) uses the dialog in edit mode as well. After closing, the dataset is refreshed. If the dialog cannot be opened (web resource missing, `Xrm.Navigation` unavailable), the control falls back to the CRM form as before. Decision logic: `lib/activity-dialog-route.ts`, test: `node KanbanViewControl/lib/activity-dialog-route.test.mjs`.
+
 ---
 
 ### Create activity entity type

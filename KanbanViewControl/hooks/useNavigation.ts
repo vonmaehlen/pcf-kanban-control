@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { IInputs } from "../generated/ManifestTypes";
 import { isNullOrEmpty } from "../lib/utils";
+import { openActivityDialog } from "../lib/activityDialog";
+import { isDialogTable, shouldCreateInDialog } from "../lib/activity-dialog-route";
 
 const popupOtions = {
     height: {value: 85, unit:"%"},
@@ -190,6 +192,27 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
         parentId: string,
         parentName?: string
     ): Promise<void> => {
+        if (shouldCreateInDialog(activityEntityName, parentEntityName, parentId) && isDialogTable(activityEntityName)) {
+            let opened = false;
+            try {
+                await openActivityDialog({
+                    mode: "create",
+                    entity: activityEntityName,
+                    regarding: {
+                        entity: parentEntityName as "opportunity" | "lead" | "account",
+                        id: parentId,
+                        name: parentName ?? "",
+                    },
+                });
+                opened = true;
+            } catch (e) {
+                console.warn("[Kanban] Aktivitätsdialog nicht verfügbar, öffne Schnellerfassung", e);
+            }
+            if (opened) {
+                dataset.refresh();
+                return;
+            }
+        }
         const nav = context.navigation as {
             openForm?: (
                 options: {
@@ -217,7 +240,7 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
             },
         };
         await nav.openForm(options, {});
-    }, [context]);
+    }, [context, dataset]);
 
     /**
      * Returns the Web API entity set name for a given entity logical name (for @odata.bind).

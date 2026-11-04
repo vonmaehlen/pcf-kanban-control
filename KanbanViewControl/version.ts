@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.43";
+export const CONTROL_VERSION = "1.7.44";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 41;
+export const BUILD_NUMBER = 42;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "Preset-Felder ohne Quick Filter werden im Konfigurationsfehler-Banner gemeldet";
+export const BUILD_DESCRIPTION = "Aufgaben öffnen und anlegen über den Aktivitätsdialog (Fallback: CRM-Formular)";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
