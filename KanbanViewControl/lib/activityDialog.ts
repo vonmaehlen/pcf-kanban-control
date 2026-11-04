@@ -28,7 +28,7 @@ export async function openActivityDialog(args: ActivityDialogArgs): Promise<Acti
     const resultKey = `vm-activity-dialog-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     await xrm.Navigation.navigateTo(
         { pageType: "webresource", webresourceName: "cre56_/activitydialog/index.html", data: JSON.stringify({ ...args, resultKey }) },
-        { target: 2, position: 1, width: { value: 640, unit: "px" }, height: { value: 85, unit: "%" }, title: dialogTitle(args) });
+        { target: 2, position: 1, width: { value: 640, unit: "px" }, height: { value: 700, unit: "px" }, title: dialogTitle(args) });
     try {
         const raw = window.sessionStorage.getItem(resultKey);
         window.sessionStorage.removeItem(resultKey);
