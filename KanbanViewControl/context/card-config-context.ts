@@ -55,6 +55,8 @@ export interface CardConfig {
   showEmailAndPhoneAsLinks: boolean;
   ellipsisFieldsOnCardSet: Set<string>;
   lineBreakFieldsOnCardSet: Set<string>;
+  /** Felder, die leer ganz entfallen (card.fields.<feld>.hideWhenEmpty, nur Config). */
+  hideWhenEmptyFieldsOnCardSet: Set<string>;
   fieldMaxHeightOnCardMap: Map<string, number>;
   fieldDisplayNamesOnCardMap: Map<string, string>;
 }
@@ -75,6 +77,7 @@ export const emptyCardConfig: CardConfig = {
   showEmailAndPhoneAsLinks: false,
   ellipsisFieldsOnCardSet: new Set(),
   lineBreakFieldsOnCardSet: new Set(),
+  hideWhenEmptyFieldsOnCardSet: new Set(),
   fieldMaxHeightOnCardMap: new Map(),
   fieldDisplayNamesOnCardMap: new Map(),
 };

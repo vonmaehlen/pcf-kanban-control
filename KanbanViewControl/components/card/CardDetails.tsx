@@ -5,6 +5,7 @@ import { CardInfo, UniqueIdentifier } from "../../interfaces";
 import { Text } from "@fluentui/react/lib/Text";
 import { isEntityReference, isNullOrEmpty, isEmailColumnDataType, isPhoneColumnDataType } from "../../lib/utils";
 import { sanitizeHtml } from "../../lib/sanitize-html";
+import { isCardFieldOmitted } from "../../lib/empty-field";
 import { Lookup } from "../lookup/Lookup";
 import { CardActionsContext } from "../../context/card-actions-context";
 import { getStrings } from "../../lib/strings";
@@ -42,6 +43,8 @@ interface ICardInfoProps {
   textEllipsis?: boolean,
   /** When true, line breaks (newlines) in the text value are displayed. */
   preserveLineBreaks?: boolean,
+  /** When true, an empty field is not rendered at all (instead of "Label: -"). */
+  hideWhenEmpty?: boolean,
   /** Maximum height in pixels for the field value; overflow is scrollable. */
   maxHeightPx?: number,
   /** Nur am Wert-Feld (estimatedvalue): Rohwert und Wahrscheinlichkeit fuer den Erwartungswert-Modus.
@@ -82,7 +85,7 @@ function getColumnDataType(dataset: { columns?: { name: string; dataType?: strin
   return col?.dataType;
 }
 
-const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false, preserveLineBreaks = false, maxHeightPx, valueRaw, probabilityRaw }: ICardInfoProps) => {
+const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml = false, hideLabel = false, widthPercent, lookupAsPersona = false, lookupPersonaIconOnly = false, showEmailAndPhoneAsLinks = false, textEllipsis = false, preserveLineBreaks = false, hideWhenEmpty = false, maxHeightPx, valueRaw, probabilityRaw }: ICardInfoProps) => {
   const { locale, context, openFormWithLoading } = useContext(CardActionsContext);
   const strings = getStrings(locale);
   const htmlHostRef = useRef<HTMLDivElement>(null);
@@ -144,7 +147,7 @@ const CardDetails = ({ id, fieldName, info, displayLabelOverride, renderAsHtml =
     }
   }, [renderAsHtml, sanitizedHtml]);
 
-  if (isEmpty && !hasLabel) {
+  if (isCardFieldOmitted(info.value, { hasLabel, hideWhenEmpty })) {
     return null;
   }
 

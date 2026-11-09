@@ -31,6 +31,8 @@ export interface ConfigFieldSettings {
   maxHeightPx?: number;
   ellipsis?: boolean;
   lineBreaks?: boolean;
+  /** Leeres Feld ganz ausblenden statt „Label: -“ (nur Config). */
+  hideWhenEmpty?: boolean;
   html?: boolean;
   persona?: FieldPersona;
   /** Nur in diesen Spalten/Stages anzeigen (Whitelist). Spalten-ID oder Spaltentitel. */
@@ -153,6 +155,8 @@ function parseFieldSettings(raw: unknown): ConfigFieldSettings | undefined {
   if (ellipsis !== undefined) settings.ellipsis = ellipsis;
   const lineBreaks = asBool(obj.lineBreaks);
   if (lineBreaks !== undefined) settings.lineBreaks = lineBreaks;
+  const hideWhenEmpty = asBool(obj.hideWhenEmpty);
+  if (hideWhenEmpty !== undefined) settings.hideWhenEmpty = hideWhenEmpty;
   const html = asBool(obj.html);
   if (html !== undefined) settings.html = html;
   if (obj.persona === "iconOnly") settings.persona = "iconOnly";
@@ -447,7 +451,7 @@ export function cfgValue(context: ComponentFramework.Context<IInputs>, path: str
  * Ableitungen aus card.fields in die intern genutzten Strukturen      *
  * ------------------------------------------------------------------ */
 
-type BoolFieldKey = "hidden" | "hideLabel" | "ellipsis" | "lineBreaks" | "html";
+type BoolFieldKey = "hidden" | "hideLabel" | "ellipsis" | "lineBreaks" | "html" | "hideWhenEmpty";
 
 /** Feldnamen, bei denen das Boolean-Flag true ist. undefined = Config sagt dazu nichts. */
 export function cfgFieldFlagSet(config: BoardConfig | null, key: BoolFieldKey): Set<string> | undefined {

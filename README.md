@@ -110,6 +110,7 @@ The biggest win is `card.fields`: previously **13 properties**, each keyed by fi
       "statuscode":   { "hidden": true },
       "budgetamount": { "visibleInStages": ["Develop", "Propose"] },
       "createdon":    { "hiddenInStages": ["Won"] },
+      "a_task.scheduledend": { "displayName": { "de": "Fällig", "en": "Due" }, "hideWhenEmpty": true },
       "donotemail":   { "highlight": { "color": "#D13438", "type": "right" } },
       "prioritycode": { "background": [
         { "optionValue": 1,     "color": "#FDE7E9" },
@@ -143,6 +144,7 @@ The export contains only values that are actually set; defaults are left out.
 - **Per-setting precedence.** For field settings this is per *setting*, not per field: if any field in `card.fields` sets `hidden`, the Config owns `hidden` for all fields; the old `hiddenFieldsOnCard` no longer applies. Settings the Config never mentions keep coming from the old properties.
 - **A broken Config does not take the board down.** Invalid JSON → the whole Config is ignored and the old properties apply. An invalid *section* (e.g. `card.fields` is not an object) → only that section is dropped. Both appear in the **Configuration errors** banner.
 - **Order matters** inside `card.fields`: highlights and background rules are evaluated in the order the fields appear in the JSON (first match wins, as before).
+- **Config-only field settings** (no legacy property): `hiddenInStages` and `hideWhenEmpty`. `hideWhenEmpty: true` drops an empty field from the card entirely instead of showing `Label: -` (e.g. the subject and due date of an optional linked record).
 - **Values are validated** the same way as in the old properties (e.g. `width` 1–100, column widths 200–1200 px), invalid entries are skipped.
 
 ### Property → Config path

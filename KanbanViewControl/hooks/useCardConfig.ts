@@ -108,6 +108,11 @@ export function useCardConfig(
       parseFieldNameSet(lineBreakRaw, "lineBreakFieldsOnCard", reportConfigError, clearConfigError),
     [boardConfig, lineBreakRaw, reportConfigError, clearConfigError]
   );
+  // Nur Config, keine Legacy-Property (neue Einstellungen kommen nicht mehr als eigene Property).
+  const hideWhenEmptyFieldsOnCardSet = useMemo(
+    () => cfgFieldFlagSet(boardConfig ?? null, "hideWhenEmpty") ?? new Set<string>(),
+    [boardConfig]
+  );
 
   /** Map: Feld-Logicalname -> Liste der Spalten/Stages, in denen das Feld sichtbar ist. */
   const fieldsVisiblePerStageMap = useMemo((): Map<string, string[]> => {
@@ -285,6 +290,7 @@ export function useCardConfig(
       showEmailAndPhoneAsLinks: showEmailAndPhoneAsLinksRaw,
       ellipsisFieldsOnCardSet,
       lineBreakFieldsOnCardSet,
+      hideWhenEmptyFieldsOnCardSet,
       fieldMaxHeightOnCardMap,
       fieldDisplayNamesOnCardMap,
     }),
@@ -303,6 +309,7 @@ export function useCardConfig(
       showEmailAndPhoneAsLinksRaw,
       ellipsisFieldsOnCardSet,
       lineBreakFieldsOnCardSet,
+      hideWhenEmptyFieldsOnCardSet,
       fieldMaxHeightOnCardMap,
       fieldDisplayNamesOnCardMap,
     ]
