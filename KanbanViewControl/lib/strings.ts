@@ -85,6 +85,8 @@ export interface Strings {
   // Card action buttons (aria-label / title)
   cardActionCreateActivity: string;
   cardActionOpenSharePoint: string;
+  /** Message when the SharePoint folder can't be found or created (reason from lib/sharepoint-location). */
+  sharePointFolderFailed: (reason: string) => string;
   cardActionOpenInNewTab: string;
   cardSelect: string;
   selectionCount: (count: number) => string;
@@ -166,6 +168,11 @@ const en: Strings = {
 
   cardActionCreateActivity: "Create activity",
   cardActionOpenSharePoint: "Open SharePoint folder",
+  sharePointFolderFailed: (reason) => ({
+    "no-default-site": "SharePoint folder not created: no unique default SharePoint site is configured in Dynamics.",
+    "no-entity-library": "SharePoint folder not created: the document library for this table is missing on the default SharePoint site.",
+    "account-not-found": "SharePoint folder not created: the account of this opportunity could not be read.",
+  } as Record<string, string>)[reason] ?? "The SharePoint folder could not be opened or created. Details are in the browser console.",
   cardActionOpenInNewTab: "Open in new tab",
   cardSelect: "Select (Ctrl/Cmd+click)",
   selectionCount: (count) => `${count} selected`,
@@ -246,6 +253,11 @@ const de: Strings = {
 
   cardActionCreateActivity: "Aktivität anlegen",
   cardActionOpenSharePoint: "SharePoint-Ordner öffnen",
+  sharePointFolderFailed: (reason) => ({
+    "no-default-site": "SharePoint-Ordner nicht angelegt: In Dynamics ist keine eindeutige Standard-SharePoint-Site eingerichtet.",
+    "no-entity-library": "SharePoint-Ordner nicht angelegt: Auf der Standard-SharePoint-Site fehlt die Dokumentbibliothek für diese Tabelle.",
+    "account-not-found": "SharePoint-Ordner nicht angelegt: Der Account dieser Chance konnte nicht gelesen werden.",
+  } as Record<string, string>)[reason] ?? "Der SharePoint-Ordner konnte nicht geöffnet oder angelegt werden. Details stehen in der Browser-Konsole.",
   cardActionOpenInNewTab: "In neuem Tab öffnen",
   cardSelect: "Auswählen (Strg/Cmd+Klick)",
   selectionCount: (count) => `${count} ausgewählt`,
