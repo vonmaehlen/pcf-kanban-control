@@ -462,7 +462,9 @@ Only used when **Show create activity button on card** is enabled.
 When **Yes**, each card shows a **SharePoint folder** button (folder icon) in the top-right corner, next to the other action buttons.  
 Clicking the button opens the **related SharePoint folder** for the current record in a new browser tab.  
 The control resolves the folder URL from the **SharePoint Document Location** linked to the record in Dataverse.  
-If **no document location exists yet** for the record, the control **creates one** (e.g. for opportunities: under the account's location and opportunity root, same behaviour as the Documents tab).  
+If **no document location exists yet** for the record, the control **creates one** (logic in `lib/sharepoint-location.ts`, same scheme as Pulse):
+- Opportunity with account: default site → library `account` → account location `<Name>_<GUID>` (created if missing) → container `opportunity` of **that** account (created if missing) → `<Name> - _<GUID>`. The container is never looked up without its parent, so a folder never lands under another customer.
+- Opportunity without account, and other tables: library `<table>` directly on the default SharePoint site. If there is no unique default site or that library is missing, nothing is created and a message is shown.  
 Default: **No**.
 
 If the opened folder is wrong or you want to compare with the app's behaviour, see [docs/SHAREPOINT_DEBUG.md](docs/SHAREPOINT_DEBUG.md) for using the browser Network tab.

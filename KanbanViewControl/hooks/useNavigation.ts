@@ -3,6 +3,9 @@ import { IInputs } from "../generated/ManifestTypes";
 import { isNullOrEmpty } from "../lib/utils";
 import { openActivityDialog } from "../lib/activityDialog";
 import { isDialogTable, shouldCreateInDialog } from "../lib/activity-dialog-route";
+import { buildLocationQuery, ensureRecordLocation, SharePointLocationApi } from "../lib/sharepoint-location";
+import { getLocaleFromLanguageId, getStrings } from "../lib/strings";
+import toast from "react-hot-toast";
 
 const popupOtions = {
     height: {value: 85, unit:"%"},
@@ -262,29 +265,10 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
     }
 
     /**
-     * Bereinigt einen Namen für relativeurl (SharePoint/Dataverse).
-     * Ungültige Zeichen: ~ " # % & * : < > ? / \ { | }
-     * Darf nicht mit . enden, keine aufeinanderfolgenden Punkte, nicht .aspx/.ashx/.asmx/.svc am Ende.
-     */
-    function sanitizeRelativeUrlName(name: string): string {
-        let s = name
-            .replace(/[~"#%&*:<>?/\\{|}]/g, "-")
-            .replace(/\.{2,}/g, "-")
-            .replace(/-+/g, "-")
-            .replace(/^[.-]+|[.-]+$/g, "")
-            .trim();
-        const invalidSuffixes = [".aspx", ".ashx", ".asmx", ".svc"];
-        for (const suffix of invalidSuffixes) {
-            if (s.toLowerCase().endsWith(suffix)) s = s.slice(0, -suffix.length).replace(/-+$/, "");
-        }
-        return s.length > 0 ? s : "Folder";
-    }
-
-    /**
      * Holt den offiziellen Anzeigenamen des Datensatzes (Primary-Name-Attribut) per Web API.
      * So wird z. B. der Opportunity-Name verwendet, nicht der Kartentitel (der z. B. der Account-Name sein kann).
      */
-    async function getRecordPrimaryName(entityName: string, entitySet: string, recordId: string): Promise<string | undefined> {
+    async function getRecordPrimaryName(entityName: string, recordId: string): Promise<string | undefined> {
         const w = typeof window !== "undefined" ? (window as any) : undefined;
         const webApi: any = w?.Xrm?.WebApi?.online ?? w?.Xrm?.WebApi;
         if (!webApi || typeof webApi.retrieveRecord !== "function") return undefined;
@@ -306,8 +290,9 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
 
     /**
      * Opens the related SharePoint folder in a new browser tab.
-     * Opportunity-Hierarchie: SharePointSite → Account-Location → opportunity-Root → Opportunity-Location.
-     * Siehe docs/SHAREPOINT_DEBUG.md.
+     * Fehlt die Ablage, wird sie nach Soll-Schema angelegt (lib/sharepoint-location.ts):
+     * Chance → Account-Ablage (wird bei Bedarf angelegt) → Container `opportunity` dieses Accounts → Chancen-Ordner.
+     * Nie unter dem Container eines fremden Accounts.
      */
     const openSharePointFolderInNewTab = useCallback(async (
         entityName: string,
@@ -322,147 +307,97 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
 
         const cleanId = id.replace(/[{}]/g, "");
         const DEBUG = "[Kanban SharePoint]";
+        const strings = getStrings(getLocaleFromLanguageId(
+            (context as { userSettings?: { languageId?: number } }).userSettings?.languageId
+        ));
         let usedAddOrEditLocation = false;
 
-        try {
-            const existingResult = await webApi.retrieveMultipleRecords(
-                "sharepointdocumentlocation",
-                `?$select=sharepointdocumentlocationid` +
-                `&$filter=_regardingobjectid_value eq ${cleanId} and statecode eq 0` +
-                `&$top=1`
-            );
-            const existing: any[] = existingResult?.entities ?? [];
-            let locationId: string | undefined = existing[0]?.sharepointdocumentlocationid;
+        const pcfApi = context.webAPI as any;
+        const createRecord = (payload: Record<string, string>): Promise<any> =>
+            typeof pcfApi?.createRecord === "function"
+                ? pcfApi.createRecord("sharepointdocumentlocation", payload)
+                : webApi.createRecord("sharepointdocumentlocation", payload);
 
-            if (!locationId) {
-                console.warn(DEBUG, "No existing location, creating...", { entityName, cleanId });
-
-                const entitySet = getEntitySetName(entityName);
-                const recordName = (await getRecordPrimaryName(entityName, entitySet, cleanId))
-                    ?? recordDisplayName?.trim()
-                    ?? undefined;
-
-                const guidSuffix = cleanId.replace(/-/g, "").toUpperCase();
-                const namePart = recordName
-                    ? sanitizeRelativeUrlName(recordName.trim())
-                    : sanitizeRelativeUrlName(entityName);
-                const folderName = namePart + " - _" + guidSuffix;
-
-                let parentLocationId: string | undefined;
-
-                if (entityName.toLowerCase() === "opportunity") {
-                    const oppRecord = await webApi.retrieveRecord(
-                        "opportunity",
-                        cleanId,
-                        "?$select=_parentaccountid_value"
-                    );
-                    const accountIdRaw = oppRecord?._parentaccountid_value;
-                    const accountId = accountIdRaw != null ? String(accountIdRaw).replace(/[{}]/g, "") : undefined;
-
-                    if (accountId) {
-                        const accountLocResult = await webApi.retrieveMultipleRecords(
-                            "sharepointdocumentlocation",
-                            `?$select=sharepointdocumentlocationid` +
-                            `&$filter=_regardingobjectid_value eq ${accountId} and statecode eq 0` +
-                            `&$top=1`
-                        );
-                        const accountLocEntities: any[] = accountLocResult?.entities ?? [];
-                        const accountLocationId = accountLocEntities[0]?.sharepointdocumentlocationid;
-
-                        console.warn(DEBUG, "Account location", { accountId, accountLocationId });
-
-                        if (accountLocationId) {
-                            const oppRootResult = await webApi.retrieveMultipleRecords(
-                                "sharepointdocumentlocation",
-                                `?$select=sharepointdocumentlocationid` +
-                                `&$filter=_parentsiteorlocation_value eq ${accountLocationId}` +
-                                ` and relativeurl eq 'opportunity'` +
-                                ` and _regardingobjectid_value eq null` +
-                                ` and statecode eq 0` +
-                                `&$top=1`
-                            );
-                            const oppRootEntities: any[] = oppRootResult?.entities ?? [];
-                            parentLocationId = oppRootEntities[0]?.sharepointdocumentlocationid;
-
-                            console.warn(DEBUG, "opportunity-root under account", {
-                                accountLocationId,
-                                found: parentLocationId ?? "(none)",
-                            });
-
-                            if (!parentLocationId) {
-                                const rootPayload: Record<string, string> = {
-                                    name: "opportunity",
-                                    relativeurl: "opportunity",
-                                    "parentsiteorlocation_sharepointdocumentlocation@odata.bind":
-                                        `/sharepointdocumentlocations(${accountLocationId})`,
-                                };
-                                const pcfApi = context.webAPI as any;
-                                const createdRoot = typeof pcfApi?.createRecord === "function"
-                                    ? await pcfApi.createRecord("sharepointdocumentlocation", rootPayload)
-                                    : await webApi.createRecord("sharepointdocumentlocation", rootPayload);
-                                parentLocationId = createdRoot?.id ?? createdRoot?.entityId;
-                                console.warn(DEBUG, "Created opportunity-root", { parentLocationId });
-                            }
-                        }
+        const api: SharePointLocationApi = {
+            async findLocationIds(query) {
+                const res = await webApi.retrieveMultipleRecords("sharepointdocumentlocation", buildLocationQuery(query));
+                return ((res?.entities ?? []) as any[])
+                    .map((e) => e?.sharepointdocumentlocationid as string | undefined)
+                    .filter((v): v is string => !!v);
+            },
+            async findDefaultSiteId() {
+                // Wie Pulse SharepointSiteRepository::default(): genau eine aktive Standard-Site.
+                const res = await webApi.retrieveMultipleRecords(
+                    "sharepointsite",
+                    "?$select=sharepointsiteid&$filter=isdefault eq true and statecode eq 0 and statuscode eq 1&$top=2"
+                );
+                const sites: any[] = res?.entities ?? [];
+                if (sites.length !== 1) {
+                    console.warn(DEBUG, "Default SharePoint site not unique", { count: sites.length });
+                    return undefined;
+                }
+                return sites[0]?.sharepointsiteid;
+            },
+            async getOpportunityAccountId(opportunityId) {
+                const rec = await webApi.retrieveRecord("opportunity", opportunityId, "?$select=_parentaccountid_value");
+                const raw = rec?._parentaccountid_value;
+                return raw ? String(raw).replace(/[{}]/g, "") : undefined;
+            },
+            async getAccountName(accountId) {
+                try {
+                    const rec = await webApi.retrieveRecord("account", accountId, "?$select=name");
+                    return typeof rec?.name === "string" && rec.name.trim() ? rec.name.trim() : undefined;
+                } catch (e) {
+                    console.warn(DEBUG, "Account not readable", { accountId, e });
+                    return undefined;
+                }
+            },
+            async createLocation({ parentId, parentType, relativeUrl, name }) {
+                const created = await createRecord({
+                    name,
+                    relativeurl: relativeUrl,
+                    [`parentsiteorlocation_${parentType}@odata.bind`]: `/${parentType}s(${parentId})`,
+                });
+                const createdId = created?.id ?? created?.entityId;
+                console.warn(DEBUG, "Created location", { parentId, relativeUrl, createdId });
+                return createdId;
+            },
+            async createRegardingLocation({ parentId, entityName: regardingEntity, recordId, folderName, recordName }) {
+                const isTarget = recordId === cleanId;
+                const clientUrl = getClientUrl();
+                if (clientUrl) {
+                    try {
+                        const locationId = await addOrEditLocation(clientUrl, parentId, regardingEntity, recordId, folderName);
+                        if (isTarget) usedAddOrEditLocation = true;
+                        console.warn(DEBUG, "AddOrEditLocation created location", { regardingEntity, locationId });
+                        return locationId;
+                    } catch (addErr) {
+                        console.warn(DEBUG, "AddOrEditLocation failed, falling back to createRecord", addErr);
                     }
                 }
+                const created = await createRecord({
+                    name: recordName ?? folderName,
+                    relativeurl: folderName,
+                    [`regardingobjectid_${regardingEntity}@odata.bind`]: `/${getEntitySetName(regardingEntity)}(${recordId})`,
+                    "parentsiteorlocation_sharepointdocumentlocation@odata.bind":
+                        `/sharepointdocumentlocations(${parentId})`,
+                });
+                const createdId: string | undefined = created?.id ?? created?.entityId;
+                if (createdId) await new Promise((resolve) => setTimeout(resolve, 1500));
+                return createdId;
+            },
+        };
 
-                if (!parentLocationId) {
-                    const genericRootResult = await webApi.retrieveMultipleRecords(
-                        "sharepointdocumentlocation",
-                        `?$select=sharepointdocumentlocationid` +
-                        `&$filter=relativeurl eq '${entityName.replace(/'/g, "''")}' ` +
-                        `and _regardingobjectid_value eq null and statecode eq 0` +
-                        `&$top=1`
-                    );
-                    const genericRootEntities: any[] = genericRootResult?.entities ?? [];
-                    parentLocationId = genericRootEntities[0]?.sharepointdocumentlocationid;
-                    console.warn(DEBUG, "Generic entity-root fallback", { found: parentLocationId ?? "(none)" });
-                }
-
-                if (!parentLocationId) {
-                    console.warn(DEBUG, "No parent location found, aborting");
-                    return;
-                }
-
-                const clientUrl = getClientUrl();
-                if (!clientUrl) {
-                    console.warn(DEBUG, "No client URL for AddOrEditLocation");
-                    return;
-                }
-
-                try {
-                    locationId = await addOrEditLocation(
-                        clientUrl,
-                        parentLocationId,
-                        entityName,
-                        cleanId,
-                        folderName
-                    );
-                    usedAddOrEditLocation = true;
-                    console.warn(DEBUG, "AddOrEditLocation created location", { locationId });
-                } catch (addErr) {
-                    console.warn(DEBUG, "AddOrEditLocation failed, falling back to createRecord", addErr);
-                    const createPayload: Record<string, string> = {
-                        name: recordName ?? folderName,
-                        relativeurl: folderName,
-                        [`regardingobjectid_${entityName}@odata.bind`]: `/${entitySet}(${cleanId})`,
-                        "parentsiteorlocation_sharepointdocumentlocation@odata.bind":
-                            `/sharepointdocumentlocations(${parentLocationId})`,
-                    };
-                    const pcfApi = context.webAPI as any;
-                    const created = typeof pcfApi?.createRecord === "function"
-                        ? await pcfApi.createRecord("sharepointdocumentlocation", createPayload)
-                        : await webApi.createRecord("sharepointdocumentlocation", createPayload);
-                    locationId = created?.id ?? created?.entityId;
-                    if (locationId) await new Promise((resolve) => setTimeout(resolve, 1500));
-                }
-
-                if (!locationId) {
-                    console.warn(DEBUG, "No location id after create");
-                    return;
-                }
+        try {
+            const recordName = (await getRecordPrimaryName(entityName, cleanId))
+                ?? (recordDisplayName?.trim() || undefined);
+            const result = await ensureRecordLocation(api, entityName, cleanId, recordName);
+            if (!result.ok) {
+                console.warn(DEBUG, "No SharePoint location", { entityName, cleanId, reason: result.reason });
+                toast.error(strings.sharePointFolderFailed(result.reason));
+                return;
             }
+            const locationId = result.locationId;
 
             // Resolve absolute URL and open SharePoint folder
             const request: any = {
@@ -502,6 +437,7 @@ export const useNavigation = (context: ComponentFramework.Context<IInputs>) => {
                         : String(err);
             const stack = err instanceof Error ? err.stack : undefined;
             console.warn(DEBUG, "Error", { message, stack, fullError: err });
+            toast.error(strings.sharePointFolderFailed("error"));
         }
     }, [context]);
 
