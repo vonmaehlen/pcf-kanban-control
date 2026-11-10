@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.46";
+export const CONTROL_VERSION = "1.7.47";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 43;
+export const BUILD_NUMBER = 44;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "SharePoint öffnen: Chancen-Ordner nur unter dem eigenen Account (legt Account-Ablage bei Bedarf an)";
+export const BUILD_DESCRIPTION = "Kartenfeld leer ausblenden (hideWhenEmpty) für „Nächstes Ops ToDo“";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;

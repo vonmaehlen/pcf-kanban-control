@@ -49,6 +49,11 @@ The `.pcfproj` sets `PcfBuildMode=production`. Run `npm run build:prod` before `
 - `visibleInStages` (whitelist, legacy property `fieldsVisiblePerStage`) and `hiddenInStages` (blacklist, **Config only** — new settings are no longer added as separate properties) are both evaluated in `Card.tsx` via `stageListMatches`.
 - A card's column value (`item.column`) is the **option id** for OptionSet views and the **stage name** for BPF views. `stageListMatches` additionally resolves the displayed column title from `activeView.columns`, so a config entry may be the id or the title (case-insensitive). Ids stay language-independent; titles do not.
 
+### Empty fields (`hideWhenEmpty`, Config only)
+
+- An empty field with a label renders `Label: -`; without a label it is dropped. `card.fields.<field>.hideWhenEmpty: true` drops it in both cases (`lib/empty-field.ts`, evaluated in `CardDetails`). Used for optional linked records such as "Nächstes Ops ToDo" (`cre56_next_ops_due` + its task's `scheduledend`) on the Retail boards.
+- Test: `node KanbanViewControl/lib/empty-field.test.mjs`.
+
 ### Key Modules
 
 - **`App.tsx`** — Root component. Manages views, transforms dataset records to cards, handles column filtering, provides `BoardContext`.

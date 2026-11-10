@@ -100,6 +100,7 @@ const Card = ({ item, draggable = true }: IProps) => {
     showEmailAndPhoneAsLinks,
     ellipsisFieldsOnCardSet,
     lineBreakFieldsOnCardSet,
+    hideWhenEmptyFieldsOnCardSet,
     fieldMaxHeightOnCardMap,
     fieldDisplayNamesOnCardMap,
   } = useContext(CardConfigContext);
@@ -398,6 +399,7 @@ const Card = ({ item, draggable = true }: IProps) => {
                 showEmailAndPhoneAsLinks={showEmailAndPhoneAsLinks}
                 textEllipsis={setMatchesField(ellipsisFieldsOnCardSet, fieldKey)}
                 preserveLineBreaks={setMatchesField(lineBreakFieldsOnCardSet, fieldKey)}
+                hideWhenEmpty={setMatchesField(hideWhenEmptyFieldsOnCardSet, fieldKey)}
                 maxHeightPx={mapGetByField(fieldMaxHeightOnCardMap, fieldKey)}
                 {...(fieldKey === VALUE_FIELD ? {
                   valueRaw: typeof item[`${VALUE_FIELD}Raw`] === "number" ? item[`${VALUE_FIELD}Raw`] as number : null,
