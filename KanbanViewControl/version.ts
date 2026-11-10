@@ -11,13 +11,13 @@
  */
 
 /** Semantische Version – muss mit ControlManifest.Input.xml übereinstimmen. */
-export const CONTROL_VERSION = "1.7.47";
+export const CONTROL_VERSION = "1.7.48";
 
 /** Monoton steigende Build-Nummer. Bei jedem umgesetzten Schritt um 1 erhöhen. */
-export const BUILD_NUMBER = 44;
+export const BUILD_NUMBER = 45;
 
 /** Kurzbeschreibung des zuletzt umgesetzten Schritts (erscheint im Konsolen-Log). */
-export const BUILD_DESCRIPTION = "Kartenfeld leer ausblenden (hideWhenEmpty) für „Nächstes Ops ToDo“";
+export const BUILD_DESCRIPTION = "Aufgabendialog nur noch für Aufgaben (interne Aufgaben migriert)";
 
 /** Formatierte Build-Kennung, z. B. "v1.7.2 (build 1)". */
 export const BUILD_LABEL = `v${CONTROL_VERSION} (build ${BUILD_NUMBER})`;
