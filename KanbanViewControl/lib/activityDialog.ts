@@ -6,20 +6,18 @@
  */
 export interface ActivityDialogArgs {
     mode: "create" | "edit";
-    entity: "task" | "cre56_internal_task";
+    entity: "task";
     id?: string;
     regarding?: { entity: "opportunity" | "lead" | "account"; id: string; name: string };
     defaults?: { due?: string; ownerId?: string; statuscode?: number; subject?: string };
 }
 export interface ActivityDialogResult { saved: boolean; completed: boolean; deleted: boolean; id: string | null; }
 
-export const DIALOG_ENTITIES = ["task", "cre56_internal_task"];
+export const DIALOG_ENTITIES = ["task"];
 
 /** Titel im CRM-Rahmen; gleiche Texte wie dialogTitle in crm-activity-dialog/src/logic/ui.ts. */
 export function dialogTitle(args: ActivityDialogArgs): string {
-    const intern = args.entity === "cre56_internal_task";
-    if (args.mode === "create") return intern ? "Neue interne Aufgabe" : "Neue Aufgabe";
-    return intern ? "Interne Aufgabe" : "Aufgabe";
+    return args.mode === "create" ? "Neue Aufgabe" : "Aufgabe";
 }
 
 export async function openActivityDialog(args: ActivityDialogArgs): Promise<ActivityDialogResult | null> {

@@ -2,7 +2,7 @@
  * Entscheidung, ob ein Öffnen/Anlegen über den Aktivitätsdialog läuft (sonst CRM-Formular).
  * Bewusst ohne Imports: wird von lib/activity-dialog-route.test.mjs direkt mit node geprüft.
  */
-export const DIALOG_TABLES = ["task", "cre56_internal_task"] as const;
+export const DIALOG_TABLES = ["task"] as const;
 export const DIALOG_REGARDING_TABLES = ["opportunity", "lead", "account"] as const;
 
 export type DialogTable = (typeof DIALOG_TABLES)[number];
