@@ -5,7 +5,7 @@ Ergänzt die Ansichten „Retail - Kanban“ und „Retail - Kanban - Abwicklung
   - eine Verknüpfung auf task über cre56_next_ops_due mit ownerid und scheduledend (Fälligkeit),
   - drei Spalten direkt hinter cre56_next_due und
   - die Kartenfelder in der Kanban-Config aller Formfaktoren (hideWhenEmpty: leer, wenn kein Ops ToDo offen).
-Auf der Karte steht die Zeile wie beim nächsten Vertriebs-ToDo: Besitzer-Symbol + Betreff. Der Betreff beginnt
+Auf der Karte steht die Zeile wie beim nächsten Vertriebs-ToDo: Betreff + Besitzer-Symbol. Der Betreff beginnt
 schon mit dem Fälligkeitsdatum („13.11.2026 - …“, setzt das Plugin), deshalb ist scheduledend auf der Karte
 ausgeblendet (bleibt in der Ansicht, z. B. zum Sortieren).
 Co-Branding-Ansichten werden nicht angefasst.
@@ -39,7 +39,7 @@ OWNER = f"{ALIAS}.ownerid"
 NEXT_DUE_TASK_OWNER = "a_c66099806c8349a18e63498da795a1a6.ownerid"
 LINK = (f'<link-entity alias="{ALIAS}" name="task" to="{FIELD}" from="activityid" link-type="outer" visible="false">'
         '<attribute name="ownerid" /><attribute name="scheduledend" /></link-entity>')
-CELLS = [(OWNER, 160), (FIELD, 166), (DUE, 120)]
+CELLS = [(FIELD, 166), (OWNER, 160), (DUE, 120)]  # Karte: Betreff, daneben Besitzer-Symbol
 CARD_FIELDS = {
     OWNER: {"hideLabel": True, "displayName": {"de": "Besitzer (Ops ToDo)", "en": "Owner (ops to-do)"},
             "width": 6, "persona": "iconOnly", "hideWhenEmpty": True},
@@ -63,8 +63,12 @@ def new_fetchxml(xml: str) -> str:
 
 
 def new_cells(layout: str) -> str:
-    if re.findall(r'<cell name="([^"]+)"', layout).count(OWNER) and all(f'<cell name="{n}"' in layout for n, _ in CELLS):
-        return layout
+    names = re.findall(r'<cell name="([^"]+)"', layout)
+    wanted = [n for n, _ in CELLS]
+    if all(n in names for n in wanted):
+        i = names.index(wanted[0])
+        if names[i:i + len(wanted)] == wanted:
+            return layout
     layout = re.sub(rf'<cell name="(?:{"|".join(re.escape(n) for n, _ in CELLS)})"[^>]*/>', "", layout)
     missing = CELLS
     names = re.findall(r'<cell name="([^"]+)"', layout)
